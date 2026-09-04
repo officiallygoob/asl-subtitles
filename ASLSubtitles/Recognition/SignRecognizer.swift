@@ -1,21 +1,24 @@
 import Foundation
 import Vision
 
-/// Orchestrates landmark features → everyday signs → fingerspelling.
+/// Orchestrates Core ML (when present) → everyday signs → fingerspelling.
 ///
-/// Extension point for Core ML:
-/// 1. Train a model on `LandmarkFeatures.featureVector()` (+ optional motion).
-/// 2. Add a `CoreMLSignClassifier` conforming to the same classify API.
-/// 3. Prefer ML scores when confidence > heuristic confidence.
+/// Offline fallback path only — Conversation Mode prefers the recognition server.
 final class SignRecognizer {
     private let fingerspelling = FingerspellingClassifier()
     private let everyday = EverydaySignHeuristics()
+    private let coreML = CoreMLSignClassifier()
 
     private var previousCenters: [CGPoint] = []
     private var lastCenter: CGPoint?
     private var lateralDirection: CGFloat = 0
     private var lateralOscillations = 0
     private var framesSinceOscillationReset = 0
+    private var featureWindow: [[Double]] = []
+    private let windowSize = 24
+
+    var coreMLAvailable: Bool { coreML.isAvailable }
+    var coreMLModelName: String { coreML.modelName }
 
     func reset() {
         previousCenters.removeAll()
@@ -23,25 +26,35 @@ final class SignRecognizer {
         lateralDirection = 0
         lateralOscillations = 0
         framesSinceOscillationReset = 0
+        featureWindow.removeAll()
     }
 
     func recognize(hands: [HandPoseSnapshot]) -> RecognitionResult {
         guard !hands.isEmpty else {
             decayMotion()
+            featureWindow.removeAll()
             return .empty
         }
 
         let features = hands.map { LandmarkFeatures(hand: $0) }
         let motion = updateMotion(with: features[0])
 
-        // Prefer multi-hand / motion everyday signs when confident.
+        // Maintain a short temporal window for Core ML Hand Action-style models.
+        featureWindow.append(features[0].featureVector())
+        if featureWindow.count > windowSize {
+            featureWindow.removeFirst(featureWindow.count - windowSize)
+        }
+
+        // Prefer Core ML when a user-supplied model is confident.
+        if featureWindow.count >= 12, let ml = coreML.classify(window: featureWindow) {
+            return ml
+        }
+
         if let sign = everyday.classify(hands: features, motion: motion), sign.confidence >= 0.58 {
             return sign
         }
 
-        // Fall back to fingerspelling on primary hand.
         if let letter = fingerspelling.classify(features[0]) {
-            // Everyday signs win ties when both fire.
             if let sign = everyday.classify(hands: features, motion: motion),
                sign.confidence >= letter.confidence {
                 return sign
@@ -55,8 +68,6 @@ final class SignRecognizer {
 
         return .empty
     }
-
-    // MARK: - Motion
 
     private func updateMotion(with primary: LandmarkFeatures) -> EverydaySignHeuristics.MotionContext {
         let center = CGPoint(x: primary.handCenterX, y: primary.handCenterY)
@@ -84,11 +95,7 @@ final class SignRecognizer {
             lateralDirection = dir
         }
 
-        return .init(
-            deltaY: dy,
-            deltaX: dx,
-            lateralOscillations: lateralOscillations
-        )
+        return .init(deltaY: dy, deltaX: dx, lateralOscillations: lateralOscillations)
     }
 
     private func decayMotion() {

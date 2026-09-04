@@ -1,82 +1,99 @@
-# ASL Subtitles
+# ASL Subtitles — Conversation Mode
 
-An iOS SwiftUI starter app that helps **hearing people** follow a **deaf friend’s American Sign Language (ASL)** by showing **live English subtitles** from the camera.
+Real conversations with a deaf friend: **live English captions from signing**, plus a **speech→text** panel so you can speak and they can read.
 
-> **Honest framing:** this is a **limited MVP** — fingerspelling A–Z plus ~20 everyday signs using **on-device** Apple Vision hand landmarks and **heuristics**. It is **not** fluent ASL translation and will misread many real-world signs.
+Inspired by privacy-preserving landmark architectures (MediaPipe Holistic → stream geometry only → continuous SLT), similar in *shape* to research systems like DeepMind SL2T / Uni-Sign — **we do not include or claim Google’s model**.
 
-Privacy: **all recognition runs on device**. No video or landmarks are uploaded.
-
-## Requirements
-
-- macOS with **Xcode 15+**
-- iPhone or iPad running **iOS 17+** (hand pose works best on a **physical device**; Simulator has no real camera/hands)
-- Apple Developer signing (Personal Team is fine for device installs)
-
-## Open & run
-
-1. Clone this repo (or unzip `ASL-Subtitles.zip`).
-2. Open **`ASLSubtitles.xcodeproj`** in Xcode.
-3. Select the **ASLSubtitles** scheme and your connected iPhone.
-4. Set your **Team** under *Signing & Capabilities* if prompted (`com.officiallygoob.aslsubtitles`).
-5. Build & Run (⌘R). Allow camera access when asked.
-
-### First-run tips
-
-- Prefer **rear camera** with the signer facing you, hand large in frame, good lighting.
-- Tap **Signs** to see the supported vocabulary.
-- Toggle **Debug** to overlay Vision hand landmarks.
-- Front/rear flip is in the bottom control bar.
-
-## What’s included
-
-| Area | Implementation |
-|------|----------------|
-| Camera | `AVFoundation` preview, rear default, front/rear toggle, `NSCameraUsageDescription` |
-| Hand tracking | `VNDetectHumanHandPoseRequest` (Vision) |
-| Fingerspelling | Rule/heuristic classifier A–Z from landmarks |
-| Everyday signs | ~20 heuristics (hello, thanks, yes, no, please, help, name, friend, love, how, you, me, good, bad, more, sorry, bye, what, where, ok, stop, …) |
-| Subtitles | Large high-contrast overlay + temporal majority-vote smoothing |
-| UX | Permission screen, “Watching for signs…”, confidence fade, vocabulary sheet |
-| Extensibility | `LandmarkFeatures.featureVector()` + TODOs for a future Core ML model |
+> **Honesty:** open-domain fluent ASL→English chat is **unsolved**. This app ships a **limited-domain continuous recognition** architecture + offline heuristics. The path to usefulness is continuous streaming + **friend adaptation** (record → Create ML / fine-tune), not marketing a toy phrase spotter as “fluent.”
 
 ## Architecture
 
 ```
-CameraManager (AVCaptureSession)
-        ↓ frames
-HandPoseDetector (Vision hand pose)
-        ↓ HandPoseSnapshot[]
-SignRecognizer
-   ├─ EverydaySignHeuristics  (multi-hand + motion)
-   └─ FingerspellingClassifier (static shapes)
-        ↓ RecognitionResult
-TemporalSmoother  →  SubtitleOverlay
+┌───────────────────────── iPhone (iOS 17+) ─────────────────────────┐
+│  Camera → Vision holistic landmarks (hands + body + face)           │
+│       ↓ discard pixels                                              │
+│  LandmarkFrame buffer (~36 frames) + utterance segmentation         │
+│       ├── WebSocket stream ──► Recognition server (LAN)             │
+│       └── offline fallback: Core ML (if present) / heuristics       │
+│                                                                     │
+│  Mic → SFSpeechRecognizer → "You said" transcript (reverse channel) │
+│                                                                     │
+│  Conversation Mode UI: Signing captions + history + You said        │
+└─────────────────────────────────────────────────────────────────────┘
+                              │ landmarks only (no video)
+                              ▼
+┌──────────────────── server/ (FastAPI) ──────────────────────────────┐
+│  WS /v1/stream  ·  POST /v1/translate  ·  GET /health               │
+│  normalize → PoseLSTM / Uni-Sign plug-in / demo decoder → gloss     │
+│  gloss → English (rules + optional local LLM)                       │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-Key folders under `ASLSubtitles/`:
+## Requirements
 
-- `Camera/` — capture session + SwiftUI preview
-- `Vision/` — hand pose detection + landmark types
-- `Recognition/` — features, fingerspelling, everyday signs, orchestrator
-- `UI/` — subtitles, controls, permission, vocabulary, debug overlay
-- `Utilities/` — temporal smoother, vocabulary catalog
+- Mac with **Xcode 15+**, iPhone/iPad **iOS 17+** (physical device recommended)
+- Python 3.11+ **or** Docker for the recognition server
+- Same Wi‑Fi / LAN when using the server from a real device
 
-## How to add a new everyday sign
+## Run the recognition server
 
-1. Add a display entry in `Utilities/VocabularyCatalog.swift`.
-2. Add a heuristic branch in `Recognition/EverydaySignHeuristics.swift` using `LandmarkFeatures` (finger extended flags, pinch, fist, open palm, motion deltas).
-3. Keep confidence conservative (`~0.55–0.8`) so the smoother can reject flicker.
-4. (Later) Collect labeled clips and replace the branch with a Core ML score — see TODOs in `LandmarkFeatures`, `FingerspellingClassifier`, `EverydaySignHeuristics`, and `SignRecognizer`.
+```bash
+cd server
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8765
+```
 
-## Limitations (please read)
+Or: `cd server && docker compose up --build`
 
-- **Not fluent ASL** — classifier vocabulary is tiny; grammar, classifiers, facial grammar, and most signs are unsupported.
-- **Ambiguous letters** — e.g. M/N/S/T, U/V/H, J/Z (motion) are weak from a single viewpoint.
-- **Motion signs** are approximated with short Δx/Δy; they need clearer, slower signing than fluent conversation.
-- **Lighting / distance / occlusion** strongly affect Vision confidence.
-- **No App Icon image** is bundled (asset slot exists); Xcode may show a default icon until you add a 1024×1024 marketing icon.
-- Built on Linux for delivery — **verify the first build on a Mac** and adjust signing.
+Check: `curl http://127.0.0.1:8765/health`
 
-## License
+On a physical iPhone, set **Settings → Continuous recognition** to  
+`ws://<your-mac-lan-ip>:8765/v1/stream` (not `127.0.0.1`).
 
-Created for personal / educational use. ASL is a living language — treat recognition errors with care and never rely on this app for safety-critical communication.
+## Run the iOS app
+
+1. Open `ASLSubtitles.xcodeproj` in Xcode.
+2. Select the **ASLSubtitles** scheme → your iPhone.
+3. Signing: Team = your Personal Team (`com.officiallygoob.aslsubtitles`).
+4. Build & Run (⌘R). Allow **Camera**, **Microphone**, and **Speech Recognition**.
+5. Conversation Mode is the default screen.
+
+### First conversation tips
+
+- Point the rear camera at your friend; keep torso + hands in frame.
+- Toggle **Mic** so your speech appears as “You said.”
+- **Debug** draws holistic landmarks.
+- Without a server, the app stays useful via **offline fallback** (heuristics / optional Core ML).
+
+## What’s included
+
+| Area | Implementation |
+|----------------------|
+| Conversation Mode | Signing captions + speech transcript + scroll history |
+| Holistic landmarks | Vision hand pose + body pose + face landmarks → `LandmarkFrame` |
+| Temporal buffer | ~36 frames (~1–2 s) + pause/rest utterance segmentation |
+| Streaming client | WebSocket landmark protocol (`RecognitionClient`) |
+| Speech → text | `SFSpeechRecognizer` reverse channel |
+| Offline fallback | Heuristics + optional `CoreMLSignClassifier` |
+| LandmarkRecorder | Export labeled JSON/JSONL for Create ML / fine-tunes |
+| Server | FastAPI WS + REST, PoseLSTM scaffold, gloss→English, Docker |
+
+## Friend adaptation (recommended next step)
+
+1. Settings → **Landmark training** → record labeled glosses with your friend.
+2. Export JSONL → train Create ML Hand Action (or fine-tune server weights).
+3. Install `ASLSignClassifier.mlmodel` on device **or** drop `uni_sign.pt` into `server/models/`.
+
+Details: [`MODELS.md`](MODELS.md) · server: [`server/README.md`](server/README.md)
+
+## Limitations
+
+- Not an interpreter. Limited gloss domain until you add weights / friend data.
+- Ambiguous fingerspelling and facial grammar remain hard.
+- Demo server decoder is for protocol + limited glosses — replace with Uni-Sign/PoseLSTM for real accuracy (see MODELS.md).
+- Simulator has no real camera/hands; use a device.
+
+## License / care
+
+Personal / educational use. Treat errors carefully; never rely on this for safety-critical communication.

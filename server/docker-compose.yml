@@ -1,0 +1,10 @@
+services:
+  asl-recognition:
+    build: .
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./models:/app/models
+    environment:
+      - ASL_GLOSS_LLM_CMD=${ASL_GLOSS_LLM_CMD:-}
+    restart: unless-stopped

@@ -17,13 +17,24 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>2.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>2</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>ASL Subtitles uses the camera to watch hand signs and show live English subtitles on your device. Video never leaves your iPhone.</string>
+	<string>ASL Subtitles uses the camera to extract hand, body, and face landmarks for live sign-language captions. Video pixels stay on your iPhone; only geometric landmarks may be sent to a recognition server you configure.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>ASL Subtitles uses the microphone so you can speak and show a live transcript your deaf friend can read.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>ASL Subtitles converts your speech to text so your conversation partner can read what you say.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>ASL Subtitles connects to a recognition server on your local network to translate landmark streams into English.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

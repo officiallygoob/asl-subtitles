@@ -7,6 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AFAA752C4D354159BB0E05D4 /* LandmarkFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 028D0036BC8544B58F39196C /* LandmarkFrame.swift */; };
+		C8C451F43EED4639B4121DE9 /* HolisticPoseDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CB71B536FC94AFA8386C3FA /* HolisticPoseDetector.swift */; };
+		36A3CC721BC34AB08C62436F /* RecognitionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9595C4060BC48C08F431B34 /* RecognitionClient.swift */; };
+		0AFA004BBB3F4507BFE64A5C /* SpeechTranscriptController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAB9749BE54844418F067DE7 /* SpeechTranscriptController.swift */; };
+		31554963CAB24D6F89D498BB /* ConversationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E982AFB9F2440C680A6F743 /* ConversationModels.swift */; };
+		5926752B5A1548F7803F90C3 /* ConversationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7BBB536F4494712A2985C83 /* ConversationView.swift */; };
+		3BE4A3E1BB7542BA8BC2D646 /* HolisticLandmarkOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = F95511890F114294A8214322 /* HolisticLandmarkOverlay.swift */; };
+		FC2E279F7BC0418AAB4A8B95 /* CoreMLSignClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = D85A001E337D4068921ABBCD /* CoreMLSignClassifier.swift */; };
+		D32E2017132841969CAB6A6F /* LandmarkRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7744D425A5334F6F8E7E8946 /* LandmarkRecorder.swift */; };
 		509F05FC3E634C6786007036 /* ASLSubtitlesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1892847555D14EE49AF54D9F /* ASLSubtitlesApp.swift */; };
 		8B6CA265A11446CAA64E8F14 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193A791F525B436E978545CC /* ContentView.swift */; };
 		CA2D0B2FE4484373A6C46876 /* ASLSessionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 832A880E47F849778B67C8D8 /* ASLSessionController.swift */; };
@@ -32,6 +41,15 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		028D0036BC8544B58F39196C /* LandmarkFrame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkFrame.swift; sourceTree = "<group>"; };
+		7CB71B536FC94AFA8386C3FA /* HolisticPoseDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolisticPoseDetector.swift; sourceTree = "<group>"; };
+		D9595C4060BC48C08F431B34 /* RecognitionClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognitionClient.swift; sourceTree = "<group>"; };
+		BAB9749BE54844418F067DE7 /* SpeechTranscriptController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechTranscriptController.swift; sourceTree = "<group>"; };
+		5E982AFB9F2440C680A6F743 /* ConversationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationModels.swift; sourceTree = "<group>"; };
+		F7BBB536F4494712A2985C83 /* ConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationView.swift; sourceTree = "<group>"; };
+		F95511890F114294A8214322 /* HolisticLandmarkOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolisticLandmarkOverlay.swift; sourceTree = "<group>"; };
+		D85A001E337D4068921ABBCD /* CoreMLSignClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreMLSignClassifier.swift; sourceTree = "<group>"; };
+		7744D425A5334F6F8E7E8946 /* LandmarkRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkRecorder.swift; sourceTree = "<group>"; };
 		1892847555D14EE49AF54D9F /* ASLSubtitlesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASLSubtitlesApp.swift; sourceTree = "<group>"; };
 		193A791F525B436E978545CC /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		832A880E47F849778B67C8D8 /* ASLSessionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASLSessionController.swift; sourceTree = "<group>"; };
@@ -95,6 +113,9 @@
 				A1000000000000000000000B /* Vision */,
 				A1000000000000000000000C /* Recognition */,
 				A1000000000000000000000D /* UI */,
+				02CA8376838D4474B4C2975C /* Networking */,
+				DD2F95A40C534A2CB76D35BC /* Speech */,
+				03C87C3055824AF6AA505E04 /* Conversation */,
 				A1000000000000000000000E /* Utilities */,
 				FDF36B6DEB304F0A9A1B7BBA /* Assets.xcassets */,
 				B742EF12C9D24FB2B7253E83 /* Info.plist */,
@@ -117,6 +138,8 @@
 			children = (
 				4DEFB62DAD9047DB98FF51E7 /* HandLandmarks.swift */,
 				9B7332CA59C143D2823F0B63 /* HandPoseDetector.swift */,
+				028D0036BC8544B58F39196C /* LandmarkFrame.swift */,
+				7CB71B536FC94AFA8386C3FA /* HolisticPoseDetector.swift */,
 			);
 			path = Vision;
 			sourceTree = "<group>";
@@ -129,6 +152,8 @@
 				14148E470C2E4FAC942D6D2C /* FingerspellingClassifier.swift */,
 				2F94C335D8E44D04B4F644F2 /* EverydaySignHeuristics.swift */,
 				66FC30B319344B5FAD63ED85 /* SignRecognizer.swift */,
+				D85A001E337D4068921ABBCD /* CoreMLSignClassifier.swift */,
+				7744D425A5334F6F8E7E8946 /* LandmarkRecorder.swift */,
 			);
 			path = Recognition;
 			sourceTree = "<group>";
@@ -142,6 +167,8 @@
 				7EE9BFC2469F4AF88C6A7D40 /* LandmarkOverlay.swift */,
 				E700DD23C9ED4265801E8455 /* VocabularySheet.swift */,
 				18880ADA933C4592A5A17369 /* SettingsSheet.swift */,
+				F7BBB536F4494712A2985C83 /* ConversationView.swift */,
+				F95511890F114294A8214322 /* HolisticLandmarkOverlay.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -161,6 +188,31 @@
 				44572EE0220B4E198324592E /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+
+		02CA8376838D4474B4C2975C /* Networking */ = {
+			isa = PBXGroup;
+			children = (
+				D9595C4060BC48C08F431B34 /* RecognitionClient.swift */,
+			);
+			path = Networking;
+			sourceTree = "<group>";
+		};
+		DD2F95A40C534A2CB76D35BC /* Speech */ = {
+			isa = PBXGroup;
+			children = (
+				BAB9749BE54844418F067DE7 /* SpeechTranscriptController.swift */,
+			);
+			path = Speech;
+			sourceTree = "<group>";
+		};
+		03C87C3055824AF6AA505E04 /* Conversation */ = {
+			isa = PBXGroup;
+			children = (
+				5E982AFB9F2440C680A6F743 /* ConversationModels.swift */,
+			);
+			path = Conversation;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -253,6 +305,15 @@
 				B3402DA72254452E9C961860 /* SettingsSheet.swift in Sources */,
 				1B4F5D33CCBA44D6A895F8C3 /* TemporalSmoother.swift in Sources */,
 				3B348EFDA152477CB68D28DA /* VocabularyCatalog.swift in Sources */,
+				AFAA752C4D354159BB0E05D4 /* LandmarkFrame.swift in Sources */,
+				C8C451F43EED4639B4121DE9 /* HolisticPoseDetector.swift in Sources */,
+				36A3CC721BC34AB08C62436F /* RecognitionClient.swift in Sources */,
+				0AFA004BBB3F4507BFE64A5C /* SpeechTranscriptController.swift in Sources */,
+				31554963CAB24D6F89D498BB /* ConversationModels.swift in Sources */,
+				5926752B5A1548F7803F90C3 /* ConversationView.swift in Sources */,
+				3BE4A3E1BB7542BA8BC2D646 /* HolisticLandmarkOverlay.swift in Sources */,
+				FC2E279F7BC0418AAB4A8B95 /* CoreMLSignClassifier.swift in Sources */,
+				D32E2017132841969CAB6A6F /* LandmarkRecorder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -384,7 +445,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"ASLSubtitles/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -396,7 +457,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.officiallygoob.aslsubtitles;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -414,7 +475,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"ASLSubtitles/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -426,7 +487,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.officiallygoob.aslsubtitles;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

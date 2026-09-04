@@ -23,3 +23,18 @@ Package.resolved
 # Misc
 *.swp
 *~
+
+# Python / server
+server/.venv/
+server/**/__pycache__/
+**/.venv/
+**/__pycache__/
+*.pyc
+server/models/*.pt
+server/models/*.onnx
+server/models/*.pth
+!server/models/.gitkeep
+
+# Secrets / local
+.env
+*.pem
