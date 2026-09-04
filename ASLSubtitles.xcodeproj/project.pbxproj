@@ -1,0 +1,465 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		509F05FC3E634C6786007036 /* ASLSubtitlesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1892847555D14EE49AF54D9F /* ASLSubtitlesApp.swift */; };
+		8B6CA265A11446CAA64E8F14 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193A791F525B436E978545CC /* ContentView.swift */; };
+		CA2D0B2FE4484373A6C46876 /* ASLSessionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 832A880E47F849778B67C8D8 /* ASLSessionController.swift */; };
+		A6119D8993704EBDAE226182 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57AC6828313A4AA38E758A3A /* CameraManager.swift */; };
+		B09C3F62159148F087E32EF9 /* CameraPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EE1B1C757FC411EB3D7E813 /* CameraPreviewView.swift */; };
+		06F308A574E6475ABE8973D0 /* HandLandmarks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DEFB62DAD9047DB98FF51E7 /* HandLandmarks.swift */; };
+		3CE48C86177A43778155FAA0 /* HandPoseDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B7332CA59C143D2823F0B63 /* HandPoseDetector.swift */; };
+		FAC0A8AF8D4B466696D974C1 /* RecognitionResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6247F32049C4EE6B614F135 /* RecognitionResult.swift */; };
+		BFF39FF6A89B4194B45A732B /* LandmarkFeatures.swift in Sources */ = {isa = PBXBuildFile; fileRef = A31EB6541A7140A08428EF12 /* LandmarkFeatures.swift */; };
+		764592ACD9AB4E28A4310755 /* FingerspellingClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14148E470C2E4FAC942D6D2C /* FingerspellingClassifier.swift */; };
+		8763773D69AC40808270B2E2 /* EverydaySignHeuristics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F94C335D8E44D04B4F644F2 /* EverydaySignHeuristics.swift */; };
+		D72B4FBB235344B0B765907D /* SignRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66FC30B319344B5FAD63ED85 /* SignRecognizer.swift */; };
+		2DF170D857BC453FBB7540DA /* SubtitleOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1640A58721F4D41BC5876BC /* SubtitleOverlay.swift */; };
+		2C933A05249245A799C3388F /* PermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 559372032F774881937D7422 /* PermissionView.swift */; };
+		14A19447533D435FADFA9841 /* ControlsBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FF1530B2B314DC38313CF88 /* ControlsBar.swift */; };
+		FF26BC641AF14E85999EC43B /* LandmarkOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EE9BFC2469F4AF88C6A7D40 /* LandmarkOverlay.swift */; };
+		7D7E15E7367F4F409F13F5FA /* VocabularySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E700DD23C9ED4265801E8455 /* VocabularySheet.swift */; };
+		B3402DA72254452E9C961860 /* SettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18880ADA933C4592A5A17369 /* SettingsSheet.swift */; };
+		1B4F5D33CCBA44D6A895F8C3 /* TemporalSmoother.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3EC8A42464C4AE29154D38E /* TemporalSmoother.swift */; };
+		3B348EFDA152477CB68D28DA /* VocabularyCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC6BC9C06FBF4C4F98B3DC24 /* VocabularyCatalog.swift */; };
+		63025FE3DCFC4FC4925A25EF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FDF36B6DEB304F0A9A1B7BBA /* Assets.xcassets */; };
+		A32631E270774DABBEBD446A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 44572EE0220B4E198324592E /* Preview Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1892847555D14EE49AF54D9F /* ASLSubtitlesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASLSubtitlesApp.swift; sourceTree = "<group>"; };
+		193A791F525B436E978545CC /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		832A880E47F849778B67C8D8 /* ASLSessionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASLSessionController.swift; sourceTree = "<group>"; };
+		57AC6828313A4AA38E758A3A /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
+		9EE1B1C757FC411EB3D7E813 /* CameraPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreviewView.swift; sourceTree = "<group>"; };
+		4DEFB62DAD9047DB98FF51E7 /* HandLandmarks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandLandmarks.swift; sourceTree = "<group>"; };
+		9B7332CA59C143D2823F0B63 /* HandPoseDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandPoseDetector.swift; sourceTree = "<group>"; };
+		C6247F32049C4EE6B614F135 /* RecognitionResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognitionResult.swift; sourceTree = "<group>"; };
+		A31EB6541A7140A08428EF12 /* LandmarkFeatures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkFeatures.swift; sourceTree = "<group>"; };
+		14148E470C2E4FAC942D6D2C /* FingerspellingClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FingerspellingClassifier.swift; sourceTree = "<group>"; };
+		2F94C335D8E44D04B4F644F2 /* EverydaySignHeuristics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EverydaySignHeuristics.swift; sourceTree = "<group>"; };
+		66FC30B319344B5FAD63ED85 /* SignRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignRecognizer.swift; sourceTree = "<group>"; };
+		C1640A58721F4D41BC5876BC /* SubtitleOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubtitleOverlay.swift; sourceTree = "<group>"; };
+		559372032F774881937D7422 /* PermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionView.swift; sourceTree = "<group>"; };
+		9FF1530B2B314DC38313CF88 /* ControlsBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlsBar.swift; sourceTree = "<group>"; };
+		7EE9BFC2469F4AF88C6A7D40 /* LandmarkOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkOverlay.swift; sourceTree = "<group>"; };
+		E700DD23C9ED4265801E8455 /* VocabularySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularySheet.swift; sourceTree = "<group>"; };
+		18880ADA933C4592A5A17369 /* SettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheet.swift; sourceTree = "<group>"; };
+		B3EC8A42464C4AE29154D38E /* TemporalSmoother.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporalSmoother.swift; sourceTree = "<group>"; };
+		BC6BC9C06FBF4C4F98B3DC24 /* VocabularyCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyCatalog.swift; sourceTree = "<group>"; };
+		FDF36B6DEB304F0A9A1B7BBA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		44572EE0220B4E198324592E /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		A10000000000000000000006 /* ASLSubtitles.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ASLSubtitles.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B742EF12C9D24FB2B7253E83 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A10000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A10000000000000000000007 = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000009 /* ASLSubtitles */,
+				A10000000000000000000008 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A10000000000000000000008 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000006 /* ASLSubtitles.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000009 /* ASLSubtitles */ = {
+			isa = PBXGroup;
+			children = (
+				1892847555D14EE49AF54D9F /* ASLSubtitlesApp.swift */,
+				193A791F525B436E978545CC /* ContentView.swift */,
+				832A880E47F849778B67C8D8 /* ASLSessionController.swift */,
+				A1000000000000000000000A /* Camera */,
+				A1000000000000000000000B /* Vision */,
+				A1000000000000000000000C /* Recognition */,
+				A1000000000000000000000D /* UI */,
+				A1000000000000000000000E /* Utilities */,
+				FDF36B6DEB304F0A9A1B7BBA /* Assets.xcassets */,
+				B742EF12C9D24FB2B7253E83 /* Info.plist */,
+				A1000000000000000000000F /* Preview Content */,
+			);
+			path = ASLSubtitles;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000000A /* Camera */ = {
+			isa = PBXGroup;
+			children = (
+				57AC6828313A4AA38E758A3A /* CameraManager.swift */,
+				9EE1B1C757FC411EB3D7E813 /* CameraPreviewView.swift */,
+			);
+			path = Camera;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000000B /* Vision */ = {
+			isa = PBXGroup;
+			children = (
+				4DEFB62DAD9047DB98FF51E7 /* HandLandmarks.swift */,
+				9B7332CA59C143D2823F0B63 /* HandPoseDetector.swift */,
+			);
+			path = Vision;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000000C /* Recognition */ = {
+			isa = PBXGroup;
+			children = (
+				C6247F32049C4EE6B614F135 /* RecognitionResult.swift */,
+				A31EB6541A7140A08428EF12 /* LandmarkFeatures.swift */,
+				14148E470C2E4FAC942D6D2C /* FingerspellingClassifier.swift */,
+				2F94C335D8E44D04B4F644F2 /* EverydaySignHeuristics.swift */,
+				66FC30B319344B5FAD63ED85 /* SignRecognizer.swift */,
+			);
+			path = Recognition;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000000D /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				C1640A58721F4D41BC5876BC /* SubtitleOverlay.swift */,
+				559372032F774881937D7422 /* PermissionView.swift */,
+				9FF1530B2B314DC38313CF88 /* ControlsBar.swift */,
+				7EE9BFC2469F4AF88C6A7D40 /* LandmarkOverlay.swift */,
+				E700DD23C9ED4265801E8455 /* VocabularySheet.swift */,
+				18880ADA933C4592A5A17369 /* SettingsSheet.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000000E /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				B3EC8A42464C4AE29154D38E /* TemporalSmoother.swift */,
+				BC6BC9C06FBF4C4F98B3DC24 /* VocabularyCatalog.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000000F /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				44572EE0220B4E198324592E /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A10000000000000000000002 /* ASLSubtitles */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000010 /* Build configuration list for PBXNativeTarget "ASLSubtitles" */;
+			buildPhases = (
+				A10000000000000000000003 /* Sources */,
+				A10000000000000000000005 /* Frameworks */,
+				A10000000000000000000004 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ASLSubtitles;
+			productName = ASLSubtitles;
+			productReference = A10000000000000000000006 /* ASLSubtitles.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A10000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					A10000000000000000000002 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = A10000000000000000000011 /* Build configuration list for PBXProject "ASLSubtitles" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A10000000000000000000007;
+			productRefGroup = A10000000000000000000008 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A10000000000000000000002 /* ASLSubtitles */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A10000000000000000000004 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				63025FE3DCFC4FC4925A25EF /* Assets.xcassets in Resources */,
+				A32631E270774DABBEBD446A /* Preview Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A10000000000000000000003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				509F05FC3E634C6786007036 /* ASLSubtitlesApp.swift in Sources */,
+				8B6CA265A11446CAA64E8F14 /* ContentView.swift in Sources */,
+				CA2D0B2FE4484373A6C46876 /* ASLSessionController.swift in Sources */,
+				A6119D8993704EBDAE226182 /* CameraManager.swift in Sources */,
+				B09C3F62159148F087E32EF9 /* CameraPreviewView.swift in Sources */,
+				06F308A574E6475ABE8973D0 /* HandLandmarks.swift in Sources */,
+				3CE48C86177A43778155FAA0 /* HandPoseDetector.swift in Sources */,
+				FAC0A8AF8D4B466696D974C1 /* RecognitionResult.swift in Sources */,
+				BFF39FF6A89B4194B45A732B /* LandmarkFeatures.swift in Sources */,
+				764592ACD9AB4E28A4310755 /* FingerspellingClassifier.swift in Sources */,
+				8763773D69AC40808270B2E2 /* EverydaySignHeuristics.swift in Sources */,
+				D72B4FBB235344B0B765907D /* SignRecognizer.swift in Sources */,
+				2DF170D857BC453FBB7540DA /* SubtitleOverlay.swift in Sources */,
+				2C933A05249245A799C3388F /* PermissionView.swift in Sources */,
+				14A19447533D435FADFA9841 /* ControlsBar.swift in Sources */,
+				FF26BC641AF14E85999EC43B /* LandmarkOverlay.swift in Sources */,
+				7D7E15E7367F4F409F13F5FA /* VocabularySheet.swift in Sources */,
+				B3402DA72254452E9C961860 /* SettingsSheet.swift in Sources */,
+				1B4F5D33CCBA44D6A895F8C3 /* TemporalSmoother.swift in Sources */,
+				3B348EFDA152477CB68D28DA /* VocabularyCatalog.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A10000000000000000000012 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A10000000000000000000013 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A10000000000000000000014 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"ASLSubtitles/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ASLSubtitles/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "ASL Subtitles";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.officiallygoob.aslsubtitles;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = targeted;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A10000000000000000000015 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"ASLSubtitles/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ASLSubtitles/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "ASL Subtitles";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.officiallygoob.aslsubtitles;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = targeted;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A10000000000000000000011 /* Build configuration list for PBXProject "ASLSubtitles" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000012 /* Debug */,
+				A10000000000000000000013 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A10000000000000000000010 /* Build configuration list for PBXNativeTarget "ASLSubtitles" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000014 /* Debug */,
+				A10000000000000000000015 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A10000000000000000000001 /* Project object */;
+}
