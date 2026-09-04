@@ -5,8 +5,8 @@
 **True open-domain conversational ASL → English is unsolved.** Even strong research systems (Uni-Sign, SignSpeak, DeepMind SL2T demos) are limited by data, domain, and signer variation. This project ships:
 
 1. A **continuous landmark-streaming architecture** (client → server) ready for better weights.
-2. A **limited-domain** demo decoder + gloss→English rules so Conversation Mode works today.
-3. Clear plug-in points for Uni-Sign / PoseLSTM / Create ML — **not** Google’s proprietary SL2T.
+2. A **runnable PoseLSTM** (`sign_classifier.pt`) over a ~73-gloss conversational vocabulary with sliding-window continuous decoding + gloss→English.
+3. Clear documentation of the **Uni-Sign gap** (architecture mismatch) — **not** Google’s proprietary SL2T.
 
 Do **not** claim fluent chat. The practical path is **limited-domain continuous recognition + friend adaptation** (record your friend’s signs, fine-tune).
 
@@ -16,18 +16,68 @@ Do **not** claim fluent chat. The practical path is **limited-domain continuous 
 |-----------|----------|
 | iOS offline fallback | Heuristics (~20 glosses + A–Z) via `SignRecognizer` |
 | iOS Core ML plug-in | `CoreMLSignClassifier` loads `ASLSignClassifier.mlmodel(c)` if **you** add it |
-| Server without weights | `demo-continuous-v1` sliding-window decoder (protocol test / limited glosses) |
-| Server with weights | Loads `server/models/*.pt` or `model.onnx` into PoseLSTM scaffold |
+| Server with shipping weights | `sign_classifier.pt` PoseLSTM (~73 conversational glosses), sliding-window continuous decode |
+| Server without weights | `demo-continuous-v1` heuristic decoder (protocol test) |
+| Uni-Sign `.pth` present | Detected on `/health` as `present-architecture-mismatch` — **not** used for inference |
 
-## Uni-Sign (preferred research checkpoint)
+## Shipping PoseLSTM (`sign_classifier.pt`)
+
+- **Input:** 32-frame windows, `FEATURE_DIM=139` (Vision/MediaPipe layout after neck/shoulder normalize).
+- **Arch:** bidirectional LSTM (hidden 192) + MLP head.
+- **Vocab:** conversational glosses in `pipeline/vocab.py` (greetings, questions, everyday needs).
+- **Training data:** synthetic kinematic templates (`scripts/synthesize_pose_dataset.py`) that match our feature layout — **not** real WLASL video. Val accuracy on that synthetic holdout is high; **real-signer accuracy will be much lower** until you fine-tune.
+- **Continuous decode:** longer utterances use sliding windows (stride 10) with consecutive-gloss dedupe → multi-gloss phrases → rule-based English.
+
+### Enable / rebuild weights
+
+```bash
+cd server
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+pip install -r requirements-ml.txt   # torch
+python scripts/synthesize_pose_dataset.py
+python scripts/train_poselstm.py
+uvicorn main:app --host 0.0.0.0 --port 8765
+curl http://127.0.0.1:8765/health   # model: sign_classifier.pt
+```
+
+Expected checkpoint dict:
+
+```python
+{
+  "state_dict": <PoseLSTMClassifier state>,
+  "num_classes": 73,
+  "input_dim": 139,
+  "hidden_dim": 192,
+  "labels": ["HELLO", "HI", ...],
+  "trained_on": "synthetic-kinematics-v1",
+}
+```
+
+Place as `server/models/sign_classifier.pt` (or `poselstm.pt`). Restart uvicorn.
+
+### Fine-tune on real data (recommended)
+
+1. App **Settings → Landmark training** → record labeled clips of your friend.
+2. Export JSONL from Documents/`LandmarkRecordings`.
+3. Convert exports into the NPZ layout used by `train_poselstm.py` (or extend the trainer to read JSONL).
+4. Retrain and replace `sign_classifier.pt`.
+
+Friend-adapted weights beat both the shipping synthetic model and the demo heuristics for real conversations.
+
+## Uni-Sign (research checkpoint — not the runtime path)
 
 - Paper: Uni-Sign (ICLR 2025)
-- Community pose checkpoints / how-to often referenced via Hugging Face (`ZechengLi19/Uni-Sign` and related How2Sign / OpenASL releases)
-- **Sign-Speak is enterprise-only** — do not block on it
+- Weights: https://huggingface.co/ZechengLi19/Uni-Sign (CC-BY-NC-4.0)
+- Code: https://github.com/ZechengLi19/Uni-Sign
 
-### Plug Uni-Sign pose weights
+### Why it doesn’t auto-load
 
-### Download (pose-only)
+Uni-Sign pose-only checkpoints expect **69 RTMPose whole-body keypoints**, Spatial **GCN** pose encoders, temporal encoders, and an **LLM** text head. Our iOS client streams **Vision holistic landmarks** packed as **139-d** features into a **PoseLSTM**. Bridging that gap means re-implementing (or vendoring) Uni-Sign’s full stack + remapping keypoints — not a drop-in `.load_state_dict`.
+
+`wlasl_pose_only_islr.pth` alone is ~1.1 GB.
+
+### Download for research / future adapter work
 
 ```bash
 cd server
@@ -35,52 +85,23 @@ cd server
 # fetches wlasl_pose_only_islr.pth into server/models/
 ```
 
-Upstream files of interest (CC-BY-NC-4.0):
-
 | File | Task |
 |------|------|
 | `wlasl_pose_only_islr.pth` | Isolated sign recognition (WLASL) |
 | `how2sign_pose_only_slt.pth` | Continuous SLT (How2Sign, large) |
 | `openasl_pose_only_slt.pth` | OpenASL continuous SLT |
 
-**Important:** these checkpoints use Uni-Sign’s native architecture. Our server detects them and reports via `/health`, but inference still uses the demo/PoseLSTM path until you finish `pipeline/uni_sign_adapter.py` (landmark layout remap + forward). Exporting a distilled PoseLSTM head to `sign_classifier.pt` is the fastest way to get auto-load today.
+`/health` reports `uni_sign.status = present-architecture-mismatch` when a `.pth` is on disk. Inference stays on PoseLSTM / demo.
 
-Code: https://github.com/ZechengLi19/Uni-Sign · Weights: https://huggingface.co/ZechengLi19/Uni-Sign
-
-
-```bash
-cd server/models
-# Example — adjust to the actual file names published for the pose encoder you choose:
-# huggingface-cli download ZechengLi19/Uni-Sign --local-dir ./uni-sign-src
-#
-# Then convert / export a pose-only classifier head to our scaffold:
-#   uni_sign.pt  with keys: state_dict, num_classes, input_dim, labels
-```
-
-Expected torch checkpoint dict:
-
-```python
-{
-  "state_dict": <PoseLSTMClassifier state>,
-  "num_classes": 2000,          # or your vocab size
-  "input_dim": 139,             # must match normalize.FEATURE_DIM (or adapt)
-  "labels": ["HELLO", "THANKS", ...]
-}
-```
-
-Place as `server/models/uni_sign.pt` (or `poselstm.pt` / `sign_classifier.pt`). Restart uvicorn; `/health` should show the file name as `model`.
-
-If the public Uni-Sign release is a full video-conditioned model rather than pure pose, keep the **pose encoder** weights and map MediaPipe/Vision landmarks into that encoder’s expected layout (document your remapping next to the checkpoint).
+**Sign-Speak is enterprise-only** — do not block on it. This is **not** Google SL2T.
 
 ## Create ML / friend adaptation (highest leverage on-device)
 
 1. In the app **Settings → Landmark training**, record labeled clips of your friend.
 2. Export JSON / JSONL from Documents/`LandmarkRecordings`.
-3. Train a Create ML **Hand Action** classifier (or a small custom sequence model) on those clips.
+3. Train a Create ML **Hand Action** classifier (or fine-tune the server PoseLSTM).
 4. Drop the model into the app bundle or Documents as `ASLSignClassifier.mlmodel`.
 5. `CoreMLSignClassifier` picks it up automatically; heuristics only fill gaps.
-
-This friend-adapted loop beats generic demo glosses for real conversations.
 
 ## Feature layout (server)
 
@@ -98,12 +119,22 @@ Normalization: subtract neck/hand origin, scale by shoulder width (`pipeline/nor
 export ASL_GLOSS_LLM_CMD='ollama run llama3.2'
 ```
 
-Rule-based `gloss_to_english` always runs; LLM is an optional local hook (no cloud keys in-repo).
+Rule-based `gloss_to_english` always runs (phrase table + stitching); LLM is an optional local hook (no cloud keys in-repo).
+
+## Accuracy expectations (honest)
+
+| Setup | Expectation |
+|-------|-------------|
+| Shipping PoseLSTM, unseen real signer | Limited-domain; many confusions; useful for protocol + coarse phrases |
+| PoseLSTM fine-tuned on your friend | Best practical path for real conversation |
+| Demo heuristics | Protocol test only |
+| Uni-Sign `.pth` without adapter | Does not run here |
+| Open-domain fluent chat | Unsolved |
 
 ## Roadmap toward better accuracy
 
-1. Load Uni-Sign / How2Sign pose checkpoint into `ContinuousDecoder`
-2. CTC / autoregressive continuous decoding (not isolated gloss windows)
-3. Friend-specific Create ML or LoRA adaptation from `LandmarkRecorder` data
+1. Fine-tune PoseLSTM on LandmarkRecorder / public WLASL MediaPipe pose sets
+2. Optional Uni-Sign runtime via vendored GCN+LLM + RTMPose remap (large effort)
+3. CTC / autoregressive continuous decoding (not only sliding ISLR windows)
 4. Stronger facial grammar features (roles, questions, negation)
 5. On-device Core ML export of the server model for offline continuous mode

@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from pipeline.decoder import ContinuousDecoder
 from pipeline.gloss_english import gloss_to_english
+from pipeline.segmenter import UtteranceSegmenter
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("asl.server")
@@ -24,7 +25,7 @@ app = FastAPI(
         "Continuous sign-to-text over landmark streams. "
         "Video pixels are never accepted — geometry only."
     ),
-    version="2.0.0",
+    version="2.1.0",
 )
 app.add_middleware(
     CORSMiddleware,
@@ -60,13 +61,16 @@ class TranslateResponse(BaseModel):
 
 @app.get("/health")
 def health() -> dict[str, Any]:
-    payload = {
+    payload: dict[str, Any] = {
         "ok": True,
         "privacy": "landmarks-only",
         "model": decoder.model_name,
         "backend": decoder.backend,
+        "vocab_size": len(decoder._label_map),
         "honesty": "limited-domain continuous; open-domain ASL chat unsolved",
     }
+    if getattr(decoder, "trained_on", None):
+        payload["trained_on"] = decoder.trained_on
     if getattr(decoder, "uni_sign_meta", None):
         payload["uni_sign"] = decoder.uni_sign_meta
     return payload
@@ -90,19 +94,37 @@ def translate(req: TranslateRequest) -> TranslateResponse:
 async def stream(ws: WebSocket) -> None:
     await ws.accept()
     buffer: list[dict[str, Any]] = []
+    utterance: list[dict[str, Any]] = []
     max_buf = 96
+    segmenter = UtteranceSegmenter()
+    frame_i = 0
 
     await ws.send_json(
         {
             "type": "welcome",
             "connected": True,
             "model": decoder.model_name,
+            "backend": decoder.backend,
             "message": (
                 "Streaming landmarks only. "
                 "True open-domain ASL→English is unsolved; this server does limited-domain continuous recognition."
             ),
         }
     )
+
+    async def emit_final(frames: list[dict[str, Any]]) -> None:
+        result = decoder.decode_window(frames[-64:] if frames else [])
+        english = gloss_to_english(result.get("gloss") or [])
+        await ws.send_json(
+            {
+                "type": "final",
+                "gloss": result.get("gloss") or [],
+                "english": english,
+                "confidence": float(result.get("confidence") or 0),
+                "isFinal": True,
+                "source": result.get("source"),
+            }
+        )
 
     try:
         while True:
@@ -115,6 +137,7 @@ async def stream(ws: WebSocket) -> None:
                         "type": "status",
                         "connected": True,
                         "model": decoder.model_name,
+                        "backend": decoder.backend,
                         "message": f"hello-ack protocol={msg.get('protocolVersion', 1)}",
                     }
                 )
@@ -122,7 +145,6 @@ async def stream(ws: WebSocket) -> None:
 
             if mtype == "frame":
                 frame = msg.get("frame") or msg
-                # Strip accidental video fields if a buggy client sends them.
                 frame.pop("image", None)
                 frame.pop("pixels", None)
                 frame.pop("jpeg", None)
@@ -130,9 +152,22 @@ async def stream(ws: WebSocket) -> None:
                 if len(buffer) > max_buf:
                     buffer = buffer[-max_buf:]
 
-                # Emit partial every ~8 frames once we have a window.
+                ts = float(frame.get("timestamp") or frame_i / 15.0)
+                activity = float(frame.get("activity") or 0.0)
+                event = segmenter.push(activity, ts)
+                frame_i += 1
+
+                if event == "began":
+                    utterance = [frame]
+                elif segmenter.is_in_utterance:
+                    utterance.append(frame)
+                    if len(utterance) > 96:
+                        utterance = utterance[-96:]
+
+                # Partial every ~8 frames once we have a window.
                 if len(buffer) >= 12 and len(buffer) % 8 == 0:
-                    result = decoder.decode_window(buffer[-32:])
+                    window_frames = utterance[-32:] if len(utterance) >= 12 else buffer[-32:]
+                    result = decoder.decode_window(window_frames)
                     english = gloss_to_english(result.get("gloss") or [])
                     await ws.send_json(
                         {
@@ -144,27 +179,25 @@ async def stream(ws: WebSocket) -> None:
                             "source": result.get("source"),
                         }
                     )
+
+                if event == "ended":
+                    frames = utterance or buffer
+                    await emit_final(frames)
+                    utterance = []
+                    buffer = []
+                    segmenter.reset()
                 continue
 
             if mtype == "utterance_end":
-                frames = msg.get("frames") or buffer
+                frames = msg.get("frames") or utterance or buffer
                 for f in frames:
                     if isinstance(f, dict):
                         f.pop("image", None)
                         f.pop("pixels", None)
-                result = decoder.decode_window(frames[-64:] if frames else buffer)
-                english = gloss_to_english(result.get("gloss") or [])
-                await ws.send_json(
-                    {
-                        "type": "final",
-                        "gloss": result.get("gloss") or [],
-                        "english": english,
-                        "confidence": float(result.get("confidence") or 0),
-                        "isFinal": True,
-                        "source": result.get("source"),
-                    }
-                )
+                await emit_final(frames)
                 buffer = []
+                utterance = []
+                segmenter.reset()
                 continue
 
             if mtype == "ping":

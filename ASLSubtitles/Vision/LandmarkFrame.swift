@@ -136,7 +136,7 @@ final class UtteranceSegmenter {
     private var utteranceStartedAt: TimeInterval?
     private(set) var isInUtterance = false
 
-    init(restThreshold: Double = 0.08, restDuration: TimeInterval = 0.45, minUtterance: TimeInterval = 0.35) {
+    init(restThreshold: Double = 0.07, restDuration: TimeInterval = 0.55, minUtterance: TimeInterval = 0.40) {
         self.restThreshold = restThreshold
         self.restDuration = restDuration
         self.minUtterance = minUtterance

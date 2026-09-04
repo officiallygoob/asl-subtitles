@@ -1,8 +1,7 @@
 """PoseLSTM scaffold — drop-in for optional .pt weights.
 
-STUB / SCAFFOLD: architecture matches common ASL landmark classifiers
-(AWS PoseLSTM-style 32-frame windows). Replace or extend when loading
-Uni-Sign pose encoders (see MODELS.md).
+Architecture matches common ASL landmark classifiers (32-frame windows).
+Uni-Sign pose encoders use a different GCN+LLM stack — see MODELS.md.
 """
 
 from __future__ import annotations
@@ -28,6 +27,9 @@ if nn is not None:
             dropout: float = 0.2,
         ) -> None:
             super().__init__()
+            self.input_dim = input_dim
+            self.hidden_dim = hidden_dim
+            self.num_classes = num_classes
             self.lstm = nn.LSTM(
                 input_size=input_dim,
                 hidden_size=hidden_dim,

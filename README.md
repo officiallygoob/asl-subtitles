@@ -48,6 +48,8 @@ Or: `cd server && docker compose up --build`
 
 Check: `curl http://127.0.0.1:8765/health`
 
+Shipping weights live in `server/models/sign_classifier.pt`. Rebuild with `pip install -r requirements-ml.txt && python scripts/train_poselstm.py` (see [`MODELS.md`](MODELS.md)).
+
 On a physical iPhone, set **Settings → Continuous recognition** to  
 `ws://<your-mac-lan-ip>:8765/v1/stream` (not `127.0.0.1`).
 
@@ -77,7 +79,7 @@ On a physical iPhone, set **Settings → Continuous recognition** to
 | Speech → text | `SFSpeechRecognizer` reverse channel |
 | Offline fallback | Heuristics + optional `CoreMLSignClassifier` |
 | LandmarkRecorder | Export labeled JSON/JSONL for Create ML / fine-tunes |
-| Server | FastAPI WS + REST, PoseLSTM scaffold, gloss→English, Docker |
+| Server | FastAPI WS + REST, shipping PoseLSTM (~73 glosses), gloss→English, Docker |
 
 ## Friend adaptation (recommended next step)
 
@@ -91,7 +93,8 @@ Details: [`MODELS.md`](MODELS.md) · server: [`server/README.md`](server/README.
 
 - Not an interpreter. Limited gloss domain until you add weights / friend data.
 - Ambiguous fingerspelling and facial grammar remain hard.
-- Demo server decoder is for protocol + limited glosses — replace with Uni-Sign/PoseLSTM for real accuracy (see MODELS.md).
+- Server ships `sign_classifier.pt` (PoseLSTM on synthetic kinematics) — better than heuristics, still limited vs real signers; fine-tune on friend data (see MODELS.md).
+- Uni-Sign `.pth` is research-only here (architecture mismatch); not Google SL2T.
 - Simulator has no real camera/hands; use a device.
 
 ## License / care

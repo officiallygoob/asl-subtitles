@@ -30,9 +30,15 @@ server/**/__pycache__/
 **/.venv/
 **/__pycache__/
 *.pyc
-server/models/*.pt
-server/models/*.onnx
+
+# Model weights: ship compact PoseLSTM; ignore huge Uni-Sign / scratch
 server/models/*.pth
+server/models/*.onnx
+server/models/synth_dataset.npz
+server/models/uni_sign.pt
+!server/models/sign_classifier.pt
+!server/models/poselstm.pt
+!server/models/labels.json
 !server/models/.gitkeep
 
 # Secrets / local

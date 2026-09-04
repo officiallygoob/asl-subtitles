@@ -52,10 +52,22 @@ Health check: `curl http://127.0.0.1:8765/health`
 
 ## Models
 
-See root [`MODELS.md`](../MODELS.md). Place checkpoints in `server/models/`:
+See root [`MODELS.md`](../MODELS.md).
 
-- `uni_sign.pt` / `poselstm.pt` / `sign_classifier.pt` / `model.onnx`
-- optional `labels.json`
+**Shipping default:** `models/sign_classifier.pt` (PoseLSTM, ~73 conversational glosses, synthetic pretrain).
+
+Also supported:
+
+- `poselstm.pt` / `model.onnx` / optional `labels.json`
+- Uni-Sign `*.pth` — detected on `/health` only (architecture mismatch; not inferred)
+
+Rebuild:
+
+```bash
+pip install -r requirements-ml.txt
+python scripts/synthesize_pose_dataset.py
+python scripts/train_poselstm.py
+```
 
 Without weights, a **demo continuous decoder** runs so Conversation Mode works end-to-end.
 

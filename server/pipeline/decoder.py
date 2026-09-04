@@ -1,9 +1,8 @@
 """Continuous landmark → gloss decoder.
 
-Loads optional PoseLSTM / Transformer weights from models/*.pt or *.onnx.
-Without weights, uses a clearly-marked demo continuous decoder that maps
-motion/pose heuristics over the sliding window to a small gloss vocab —
-enough to exercise the streaming protocol end-to-end.
+Loads PoseLSTM weights from models/sign_classifier.pt (shipping default when
+present). Falls back to a heuristic demo decoder. Uni-Sign .pth files are
+detected and reported but require their native GCN+LLM stack (see MODELS.md).
 """
 
 from __future__ import annotations
@@ -17,15 +16,11 @@ import numpy as np
 
 from .normalize import FEATURE_DIM, frames_to_tensor, normalize_frames
 from .uni_sign_adapter import find_uni_sign_checkpoint, describe_checkpoint
+from .vocab import GLOSS_VOCAB
 
 logger = logging.getLogger("asl.decoder")
 
-# Small demo gloss inventory used when no research checkpoint is present.
-DEMO_GLOSS_VOCAB = [
-    "HELLO", "THANKS", "YES", "NO", "PLEASE", "HELP", "NAME", "FRIEND",
-    "LOVE", "HOW", "YOU", "ME", "GOOD", "BAD", "MORE", "SORRY", "BYE",
-    "WHAT", "WHERE", "OK", "STOP", "UNDERSTAND", "AGAIN", "SLOW",
-]
+DEMO_GLOSS_VOCAB = list(GLOSS_VOCAB[:25])
 
 MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
 
@@ -40,14 +35,14 @@ class ContinuousDecoder:
         self._onnx = None
         self._label_map: list[str] = list(DEMO_GLOSS_VOCAB)
         self.uni_sign_meta = None
+        self.trained_on: str | None = None
         self._load()
 
     def _load(self) -> None:
-        # Prefer explicit uni-sign / poselstm checkpoints if present.
         candidates = [
-            self.models_dir / "uni_sign.pt",
-            self.models_dir / "poselstm.pt",
             self.models_dir / "sign_classifier.pt",
+            self.models_dir / "poselstm.pt",
+            self.models_dir / "uni_sign.pt",
             self.models_dir / "model.onnx",
         ]
         meta_path = self.models_dir / "labels.json"
@@ -66,17 +61,19 @@ class ContinuousDecoder:
                 continue
             if path.suffix == ".onnx":
                 if self._try_onnx(path):
+                    self._note_uni_sign_pending()
                     return
             else:
                 if self._try_torch(path):
+                    self._note_uni_sign_pending()
                     return
 
         uni = find_uni_sign_checkpoint(self.models_dir)
         if uni is not None:
             meta = describe_checkpoint(uni)
             logger.warning(
-                "Found Uni-Sign checkpoint %s (%s bytes) but adapter is not wired — "
-                "using demo decoder. Details: %s",
+                "Found Uni-Sign checkpoint %s (%s bytes) but native GCN+LLM "
+                "stack is not embedded — using demo decoder. %s",
                 uni.name,
                 meta.get("bytes"),
                 meta.get("hint"),
@@ -87,13 +84,18 @@ class ContinuousDecoder:
             return
 
         logger.info(
-            "No research checkpoint found in %s — using demo continuous decoder. "
-            "See MODELS.md to plug Uni-Sign / PoseLSTM weights.",
+            "No PoseLSTM checkpoint in %s — demo decoder. "
+            "Run scripts/train_poselstm.py or see MODELS.md.",
             self.models_dir,
         )
         self.backend = "demo"
         self.model_name = "demo-continuous-v1"
         self.uni_sign_meta = None
+
+    def _note_uni_sign_pending(self) -> None:
+        uni = find_uni_sign_checkpoint(self.models_dir)
+        if uni is not None and uni.suffix == ".pth":
+            self.uni_sign_meta = describe_checkpoint(uni)
 
     def _try_torch(self, path: Path) -> bool:
         try:
@@ -103,26 +105,39 @@ class ContinuousDecoder:
             ckpt = torch.load(path, map_location="cpu", weights_only=False)
             if isinstance(ckpt, dict) and "state_dict" in ckpt:
                 state = ckpt["state_dict"]
-                num_classes = ckpt.get("num_classes", len(self._label_map))
-                input_dim = ckpt.get("input_dim", FEATURE_DIM)
+                num_classes = int(ckpt.get("num_classes", len(self._label_map)))
+                input_dim = int(ckpt.get("input_dim", FEATURE_DIM))
+                hidden_dim = int(ckpt.get("hidden_dim", 256))
                 if "labels" in ckpt:
                     self._label_map = [str(x) for x in ckpt["labels"]]
-            elif isinstance(ckpt, dict) and any(k.startswith("lstm") or k.startswith("fc") for k in ckpt):
+                self.trained_on = str(ckpt.get("trained_on") or "")
+            elif isinstance(ckpt, dict) and any(
+                k.startswith("lstm") or k.startswith("fc") for k in ckpt
+            ):
                 state = ckpt
                 num_classes = len(self._label_map)
                 input_dim = FEATURE_DIM
+                hidden_dim = 256
             else:
-                # Unknown format — keep file noted but don't crash.
                 logger.warning("Unrecognized checkpoint format at %s", path)
                 return False
 
-            model = PoseLSTMClassifier(input_dim=input_dim, num_classes=num_classes)
+            model = PoseLSTMClassifier(
+                input_dim=input_dim,
+                hidden_dim=hidden_dim,
+                num_classes=num_classes,
+            )
             model.load_state_dict(state, strict=False)
             model.eval()
             self._torch_model = model
             self.backend = "pytorch"
             self.model_name = path.name
-            logger.info("Loaded PyTorch weights from %s (%d classes)", path, num_classes)
+            logger.info(
+                "Loaded PyTorch weights from %s (%d classes, hidden=%d)",
+                path,
+                num_classes,
+                hidden_dim,
+            )
             return True
         except Exception as exc:
             logger.warning("Failed to load %s: %s", path, exc)
@@ -130,9 +145,11 @@ class ContinuousDecoder:
 
     def _try_onnx(self, path: Path) -> bool:
         try:
-            import onnxruntime as ort  # optional
+            import onnxruntime as ort
 
-            self._onnx = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+            self._onnx = ort.InferenceSession(
+                str(path), providers=["CPUExecutionProvider"]
+            )
             self.backend = "onnx"
             self.model_name = path.name
             logger.info("Loaded ONNX model from %s", path)
@@ -148,12 +165,12 @@ class ContinuousDecoder:
             return {"gloss": [], "confidence": 0.0, "source": self.backend}
 
         if self._torch_model is not None:
-            return self._decode_torch(frames)
+            return self._decode_torch_continuous(frames)
         if self._onnx is not None:
             return self._decode_onnx(frames)
         return self._decode_demo(frames)
 
-    def _decode_torch(self, frames: list[dict[str, Any]]) -> dict[str, Any]:
+    def _predict_torch_single(self, frames: list[dict[str, Any]]) -> tuple[str, float]:
         import torch
 
         tensor = frames_to_tensor(frames, window=32)
@@ -161,10 +178,69 @@ class ContinuousDecoder:
             logits = self._torch_model(tensor)
             probs = torch.softmax(logits, dim=-1)[0]
             conf, idx = torch.max(probs, dim=-1)
-        label = self._label_map[int(idx)] if int(idx) < len(self._label_map) else "UNK"
+        label = (
+            self._label_map[int(idx)]
+            if int(idx) < len(self._label_map)
+            else "UNK"
+        )
+        return label, float(conf)
+
+    def _decode_torch_continuous(self, frames: list[dict[str, Any]]) -> dict[str, Any]:
+        """Sliding-window ISLR → gloss sequence with consecutive dedupe.
+
+        For short clips (<=40 frames) emit a single top gloss.
+        For longer utterances, slide windows and build a gloss phrase.
+        """
+        n = len(frames)
+        if n < 6:
+            return {"gloss": [], "confidence": 0.0, "source": f"pytorch:{self.model_name}"}
+
+        # Gate on activity so rest poses don't spam glosses.
+        arr = normalize_frames(frames)
+        activity = float(np.mean(np.abs(arr[:, -1]))) if arr.size else 0.0
+        if activity < 0.02:
+            return {"gloss": [], "confidence": 0.0, "source": f"pytorch:{self.model_name}"}
+
+        window = 32
+        stride = 10
+        min_conf = 0.35
+
+        if n <= window + 8:
+            label, conf = self._predict_torch_single(frames)
+            if conf < min_conf:
+                return {
+                    "gloss": [],
+                    "confidence": conf,
+                    "source": f"pytorch:{self.model_name}",
+                }
+            return {
+                "gloss": [label],
+                "confidence": conf,
+                "source": f"pytorch:{self.model_name}",
+            }
+
+        glosses: list[str] = []
+        confs: list[float] = []
+        for start in range(0, max(1, n - window + 1), stride):
+            chunk = frames[start : start + window]
+            if len(chunk) < 12:
+                continue
+            label, conf = self._predict_torch_single(chunk)
+            if conf < min_conf:
+                continue
+            if not glosses or glosses[-1] != label:
+                glosses.append(label)
+                confs.append(conf)
+            else:
+                confs[-1] = max(confs[-1], conf)
+
+        # Cap phrase length for subtitle readability
+        glosses = glosses[:6]
+        confs = confs[:6]
+        mean_conf = float(np.mean(confs)) if confs else 0.0
         return {
-            "gloss": [label],
-            "confidence": float(conf),
+            "gloss": glosses,
+            "confidence": mean_conf,
             "source": f"pytorch:{self.model_name}",
         }
 
@@ -189,32 +265,24 @@ class ContinuousDecoder:
         }
 
     def _decode_demo(self, frames: list[dict[str, Any]]) -> dict[str, Any]:
-        """Demo continuous decoder — NOT a research SLT model.
-
-        Uses window-level motion + hand shape proxies so the streaming
-        conversation architecture is testable without Uni-Sign weights.
-        """
+        """Demo continuous decoder — NOT a research SLT model."""
         arr = normalize_frames(frames)
         if arr.shape[0] < 4:
             return {"gloss": [], "confidence": 0.0, "source": "demo"}
 
         activity = float(np.mean(np.abs(arr[:, -1])))
-        # Hand openness proxy: mean distance of fingertip dims from wrist.
         left = arr[:, 0:42]
         right = arr[:, 42:84]
         primary = right if np.mean(np.abs(right)) > np.mean(np.abs(left)) else left
-        tips = primary[:, [8, 9, 16, 17, 24, 25, 32, 33, 40, 41]]  # tip xy pairs flattened-ish
-        openness = float(np.mean(np.linalg.norm(tips.reshape(tips.shape[0], -1, 2), axis=-1)))
-        # Vertical motion of wrist
+        tips = primary[:, [8, 9, 16, 17, 24, 25, 32, 33, 40, 41]]
+        openness = float(
+            np.mean(np.linalg.norm(tips.reshape(tips.shape[0], -1, 2), axis=-1))
+        )
         wrist_y = primary[:, 1]
         dy = float(wrist_y[-1] - wrist_y[0]) if len(wrist_y) else 0.0
-        # Lateral oscillation count
         wrist_x = primary[:, 0]
         dx = np.diff(wrist_x)
         osc = int(np.sum((dx[1:] * dx[:-1]) < 0)) if len(dx) > 2 else 0
-
-        gloss: list[str] = []
-        conf = 0.45
 
         if activity < 0.02:
             return {"gloss": [], "confidence": 0.0, "source": "demo"}
