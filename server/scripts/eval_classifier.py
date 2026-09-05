@@ -26,7 +26,7 @@ def main() -> int:
             args.data = legacy
 
     import torch
-    from pipeline.sequence_model import PoseLSTMClassifier
+    from pipeline.sequence_model import build_sequence_model
 
     blob = np.load(args.data, allow_pickle=True)
     X = blob["X"].astype(np.float32)
@@ -43,10 +43,14 @@ def main() -> int:
     yt = y[mask]
 
     ckpt = torch.load(args.ckpt, map_location="cpu", weights_only=False)
-    model = PoseLSTMClassifier(
+    arch = ckpt.get("arch") or ckpt.get("backend") or "poselstm"
+    if isinstance(arch, str) and arch.endswith("-nmm"):
+        arch = arch[: -len("-nmm")]
+    model = build_sequence_model(
+        arch,
         input_dim=int(ckpt.get("input_dim", FEATURE_DIM)),
-        hidden_dim=int(ckpt.get("hidden_dim", 256)),
-        num_layers=int(ckpt.get("num_layers", 3)),
+        hidden_dim=int(ckpt.get("hidden_dim", 192)),
+        num_layers=int(ckpt.get("num_layers", 2)),
         num_classes=int(ckpt["num_classes"]),
         bidirectional=True,
         dropout=0.0,
@@ -72,6 +76,7 @@ def main() -> int:
         "top5": top5,
         "n": int(mask.sum()),
         "n_classes": int(ckpt["num_classes"]),
+        "arch": arch,
         "top_confusions": top,
         "previous": ckpt.get("previous_baseline"),
         "wlasl100_subset": ckpt.get("wlasl100_subset"),

@@ -4,7 +4,7 @@ FastAPI service that accepts **landmark geometry only** (hands / body / face) an
 
 > **Product default is on-device Core ML** (see root MODELS.md). This server is **optional / LAN debug**.
 >
-> **Honesty:** open-domain conversational ASL→English is unsolved. PoseLSTM here mirrors the on-device model. Not Google SL2T.
+> **Honesty:** open-domain conversational ASL→English is unsolved. TCN-BiLSTM here mirrors the on-device model. Not Google SL2T.
 
 ## Privacy
 
@@ -56,7 +56,7 @@ Health check: `curl http://127.0.0.1:8765/health`
 
 See root [`MODELS.md`](../MODELS.md).
 
-**Shipping default:** `models/sign_classifier.pt` (PoseLSTM, ~170+ conversational glosses, synthetic pretrain).
+**Shipping default:** `models/sign_classifier.pt` (TCN-BiLSTM, 234-class head; Citizen merged via gloss_map).
 
 Also supported:
 

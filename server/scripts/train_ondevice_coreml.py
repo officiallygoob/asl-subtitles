@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Train PoseLSTM-v3 on multi-source pose (+ synth) and export Core ML.
+"""Train on-device Core ML classifiers (PoseLSTM / TCN-BiLSTM / Transformer).
 
 Primary product path: on-device Core ML. Server .pt is a side artifact for
-optional LAN debug — not required for captions.
+optional LAN debug — not required for captions. preferRecognitionServer stays OFF.
 
 Usage:
-  python scripts/convert_pose_hdf5.py --sources wlasl100,aslcitizen100,wlasl300 --mix-synth
-  python scripts/train_ondevice_coreml.py
+  python scripts/convert_pose_hdf5.py --sources wlasl100,aslcitizen100,wlasl300 --mix-synth --focus-wlasl100
+  python scripts/train_ondevice_coreml.py --arch tcn-bilstm --heavy-aug --aug-copies 4
+  python scripts/convert_pose_hdf5.py ... --daily-vocab --out models/pose_features_daily.npz
+  python scripts/train_ondevice_coreml.py --data models/pose_features_daily.npz --arch tcn-bilstm \\
+      --coreml ../ASLSubtitles/Models/ASLSignClassifierDaily.mlpackage --out models/sign_classifier_daily.pt
 """
 
 from __future__ import annotations
@@ -48,7 +51,6 @@ def normalize_matrix(mat: np.ndarray) -> np.ndarray:
 
 
 def nmm_aux_targets(labels: list[str], y: np.ndarray) -> np.ndarray:
-    """Soft targets: [question, negation, emphasis] from gloss linguistics."""
     questions = {"WHAT", "WHERE", "WHEN", "WHO", "WHY", "HOW", "WHICH", "QUESTION"}
     negation = {"NO", "DONT-KNOW", "WRONG", "FALSE"}
     emphasis = {"IMPORTANT", "NEED", "HELP", "STOP", "LOVE", "ANGRY", "YES"}
@@ -74,6 +76,7 @@ def topk_acc(logits, y, k: int = 5) -> float:
 
 def forward_logits(model, X, batch: int = 256):
     import torch
+
     outs = []
     model.eval()
     with torch.no_grad():
@@ -82,8 +85,7 @@ def forward_logits(model, X, batch: int = 256):
     return torch.cat(outs, dim=0)
 
 
-def export_coreml(model, labels: list[str], input_dim: int, out_path: Path, window: int = 32) -> Path | None:
-    """Export traced PoseLSTM to Core ML mlpackage (works on Linux without libcoremlpython runtime)."""
+def export_coreml(model, labels: list[str], input_dim: int, out_path: Path, window: int, arch: str) -> Path | None:
     import torch
 
     try:
@@ -104,6 +106,7 @@ def export_coreml(model, labels: list[str], input_dim: int, out_path: Path, wind
             return self.m(x)
 
     wrapped = Wrapper(model)
+    # Transformer uses dynamic control; trace usually OK with fixed window.
     traced = torch.jit.trace(wrapped, example)
 
     mlmodel = ct.convert(
@@ -117,13 +120,13 @@ def export_coreml(model, labels: list[str], input_dim: int, out_path: Path, wind
     mlmodel.user_defined_metadata["feature_dim"] = str(input_dim)
     mlmodel.user_defined_metadata["window"] = str(window)
     mlmodel.user_defined_metadata["layout"] = "asl-subtitles.landmark-sequence.v2"
-    mlmodel.user_defined_metadata["arch"] = "poselstm-v3-nmm-mha"
-    mlmodel.short_description = "On-device ASL PoseLSTM-v3 (hands+face+body+NMM). Privacy: runs locally."
+    mlmodel.user_defined_metadata["arch"] = arch
+    mlmodel.short_description = f"On-device ASL {arch} (hands+face+body+NMM). Privacy: runs locally."
     out_path.parent.mkdir(parents=True, exist_ok=True)
     mlmodel.save(str(out_path))
     side = out_path.parent / (out_path.stem + ".labels.json")
     side.write_text(
-        json.dumps({"labels": labels, "input": "poses", "shape": [1, window, input_dim], "arch": "poselstm-v3"}, indent=2)
+        json.dumps({"labels": labels, "input": "poses", "shape": [1, window, input_dim], "arch": arch}, indent=2)
     )
     print(f"Core ML saved → {out_path}")
     return out_path
@@ -134,18 +137,21 @@ def main() -> int:
     ap.add_argument("--data", type=Path, default=ROOT / "models" / "pose_features.npz")
     ap.add_argument("--out", type=Path, default=ROOT / "models" / "sign_classifier.pt")
     ap.add_argument("--coreml", type=Path, default=ROOT.parent / "ASLSubtitles" / "Models" / "ASLSignClassifier.mlpackage")
-    ap.add_argument("--epochs", type=int, default=30)
+    ap.add_argument("--epochs", type=int, default=32)
     ap.add_argument("--batch", type=int, default=48)
     ap.add_argument("--lr", type=float, default=6e-4)
-    ap.add_argument("--hidden", type=int, default=224)
-    ap.add_argument("--layers", type=int, default=3)
+    ap.add_argument("--hidden", type=int, default=192)
+    ap.add_argument("--layers", type=int, default=2)
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--aux-weight", type=float, default=0.3)
-    ap.add_argument("--aug-copies", type=int, default=2, help="Extra augmented copies of each real train sample")
-    ap.add_argument("--label-smoothing", type=float, default=0.02)
+    ap.add_argument("--aug-copies", type=int, default=3, help="Extra augmented copies of each real train sample")
+    ap.add_argument("--heavy-aug", action="store_true")
+    ap.add_argument("--label-smoothing", type=float, default=0.04)
+    ap.add_argument("--arch", default="tcn-bilstm", help="poselstm | tcn-bilstm | transformer")
+    ap.add_argument("--attn-heads", type=int, default=4)
+    ap.add_argument("--report", type=Path, default=None, help="Override eval_report path")
     args = ap.parse_args()
 
-    # Fall back to legacy NPZ name
     if not args.data.exists():
         legacy = ROOT / "models" / "wlasl100_features.npz"
         if legacy.exists():
@@ -158,12 +164,13 @@ def main() -> int:
     from torch import nn
     from torch.utils.data import DataLoader, TensorDataset, WeightedRandomSampler
 
-    from pipeline.augment import augment_sequence
+    from pipeline.augment import augment_sequence, augment_sequence_heavy
     from pipeline.normalize import FEATURE_DIM
-    from pipeline.sequence_model import PoseLSTMClassifier
+    from pipeline.sequence_model import build_sequence_model
 
     rng = np.random.default_rng(args.seed)
     torch.manual_seed(args.seed)
+    aug_fn = augment_sequence_heavy if args.heavy_aug else augment_sequence
 
     blob = np.load(args.data, allow_pickle=True)
     X = blob["X"].astype(np.float32)
@@ -171,10 +178,10 @@ def main() -> int:
     labels = [str(x) for x in blob["labels"].tolist()]
     splits = blob["split"].tolist() if "split" in blob else ["train"] * len(y)
     sources = blob["source"].tolist() if "source" in blob else ["unknown"] * len(y)
+    window = int(X.shape[1])
 
-    print(f"loaded X={X.shape} classes={len(labels)} unique_sources={sorted(set(sources))}")
+    print(f"loaded X={X.shape} classes={len(labels)} arch={args.arch} unique_sources={sorted(set(sources))}")
 
-    # Prefer explicit val/test; train includes train+synth
     val_mask = np.array([s == "val" for s in splits])
     test_mask = np.array([s == "test" for s in splits])
     train_mask = np.array([s in ("train", "synth") for s in splits])
@@ -185,22 +192,19 @@ def main() -> int:
         val_mask[idx[:n_val]] = True
         train_mask = ~val_mask
 
-    # Normalize all once; augment on raw-normalized train copies
     print("normalizing…")
     Xn = np.stack([normalize_matrix(X[i]) for i in range(len(X))], axis=0)
     aux = nmm_aux_targets(labels, y)
 
     Xtr_base, ytr_base, atr_base = Xn[train_mask], y[train_mask], aux[train_mask]
-    # Build augmented train set
     aug_X, aug_y, aug_a = [Xtr_base], [ytr_base], [atr_base]
-    # Only augment real (non-synth) rows for diversity
     real_train_idx = [i for i, s in enumerate(np.array(splits)[train_mask]) if s == "train"]
     if args.aug_copies > 0 and real_train_idx:
-        print(f"augmenting {len(real_train_idx)} real train × {args.aug_copies}…")
+        print(f"augmenting {len(real_train_idx)} real train × {args.aug_copies} ({'heavy' if args.heavy_aug else 'std'})…")
         for _ in range(args.aug_copies):
             xs, ys, as_ = [], [], []
             for j in real_train_idx:
-                xs.append(augment_sequence(Xtr_base[j], rng))
+                xs.append(aug_fn(Xtr_base[j], rng))
                 ys.append(ytr_base[j])
                 as_.append(atr_base[j])
             aug_X.append(np.stack(xs, axis=0))
@@ -213,15 +217,13 @@ def main() -> int:
     Xva, yva = Xn[val_mask], y[val_mask]
     Xte, yte = (Xn[test_mask], y[test_mask]) if test_mask.any() else (Xva, yva)
 
-    # WLASL100-only masks for comparable metrics vs previous ship
     src_arr = np.array(sources)
     w100_val = val_mask & (src_arr == "wlasl100")
     w100_test = test_mask & (src_arr == "wlasl100")
 
-    # Class-balanced sampling
     counts = np.bincount(ytr, minlength=len(labels)).astype(np.float64)
     counts = np.clip(counts, 1.0, None)
-    class_w = (1.0 / np.sqrt(counts))
+    class_w = 1.0 / np.sqrt(counts)
     class_w = class_w / class_w.sum() * len(labels)
     sample_w = class_w[ytr]
     sampler = WeightedRandomSampler(
@@ -231,21 +233,21 @@ def main() -> int:
     )
 
     device = torch.device("cpu")
-    model = PoseLSTMClassifier(
+    model_kwargs = dict(
         input_dim=FEATURE_DIM,
         hidden_dim=args.hidden,
         num_layers=args.layers,
         num_classes=len(labels),
         bidirectional=True,
         dropout=0.3,
-        attn_heads=4,
-    ).to(device)
+        attn_heads=args.attn_heads,
+    )
+    model = build_sequence_model(args.arch, **model_kwargs).to(device)
     n_params = sum(p.numel() for p in model.parameters())
-    print(f"model params={n_params:,} hidden={args.hidden} layers={args.layers}")
+    print(f"model params={n_params:,} hidden={args.hidden} layers={args.layers} arch={args.arch}")
 
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=2e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs, eta_min=args.lr * 0.05)
-    # Class-weighted CE + label smoothing
     ce_w = torch.as_tensor(class_w, dtype=torch.float32)
     crit = nn.CrossEntropyLoss(weight=ce_w, label_smoothing=args.label_smoothing)
     bce = nn.BCEWithLogitsLoss()
@@ -255,8 +257,8 @@ def main() -> int:
         sampler=sampler,
         drop_last=False,
     )
-    Xva_t, yva_t = torch.from_numpy(Xva), torch.from_numpy(yva)
-    Xte_t, yte_t = torch.from_numpy(Xte), torch.from_numpy(yte)
+    yva_t = torch.from_numpy(yva)
+    yte_t = torch.from_numpy(yte)
 
     best_acc = -1.0
     best_state = None
@@ -287,7 +289,6 @@ def main() -> int:
             f"epoch {epoch:02d}  loss={total_loss/max(n,1):.4f}  "
             f"val@1={acc:.3f} val@5={va5:.3f}  test@1={te_acc:.3f} test@5={te5:.3f}"
         )
-        # Prefer WLASL100 val for early-stop when multi-source val is mixed
         score = acc
         if w100_val.any():
             with torch.no_grad():
@@ -313,7 +314,6 @@ def main() -> int:
     te_acc, te5, pred, te_logits = score_split(Xte, yte)
     va_acc, va5, _, _ = score_split(Xva, yva)
 
-    # WLASL100 comparable subset
     w100_metrics = {}
     if w100_val.any():
         t1, t5, _, _ = score_split(Xn[w100_val], y[w100_val])
@@ -334,6 +334,7 @@ def main() -> int:
     top_conf = sorted(confusions.items(), key=lambda kv: -kv[1])[:15]
 
     trained_on = "+".join(sorted(set(sources)))
+    arch_name = f"{args.arch}-nmm"
     args.out.parent.mkdir(parents=True, exist_ok=True)
     ckpt = {
         "state_dict": best_state,
@@ -346,15 +347,17 @@ def main() -> int:
         "val_top5": va5,
         "test_acc": te_acc,
         "test_top5": te5,
-        "backend": "poselstm-v3-stable-nmm-attn",
+        "backend": arch_name,
+        "arch": args.arch,
         "trained_on": trained_on,
         "note": (
-            "PoseLSTM-v3 on multi-source public pose (COCO-135→FEATURE_DIM v2) with "
-            "speed/mirror/noise aug + class-balanced sampling. Primary: Core ML on-device."
+            f"{args.arch} on multi-source public pose (COCO-135→FEATURE_DIM v2) with "
+            "gloss_map (Citizen sense/synonym) + aug + class-balanced sampling. Primary: Core ML on-device."
         ),
         "top_confusions": top_conf,
         "wlasl100_subset": w100_metrics,
-        "previous_baseline": {"val_top1": 0.2544, "test_top1": 0.1667, "n_classes": 234},
+        "previous_baseline": {"val_top1": 0.2574, "test_top1": 0.2093, "n_classes": 234},
+        "window": window,
     }
     torch.save(ckpt, args.out)
     (args.out.parent / "labels.json").write_text(
@@ -366,6 +369,7 @@ def main() -> int:
                 "test_acc": te_acc,
                 "test_top5": te5,
                 "trained_on": trained_on,
+                "arch": args.arch,
                 "top_confusions": top_conf,
                 "wlasl100_subset": w100_metrics,
             },
@@ -379,6 +383,11 @@ def main() -> int:
     if w100_metrics:
         print(f"WLASL100-subset: {w100_metrics}")
 
+    prev_test = 0.2093
+    delta = None
+    if w100_metrics.get("test_top1") is not None:
+        delta = (w100_metrics["test_top1"] - prev_test) * 100.0
+
     report = {
         "val_top1": va_acc,
         "val_top5": va5,
@@ -391,17 +400,26 @@ def main() -> int:
         "n_test": int(test_mask.sum()) if test_mask.any() else int(val_mask.sum()),
         "top_confusions": top_conf,
         "trained_on": trained_on,
-        "arch": "poselstm-v3-stable-nmm-attn",
-        "aug": f"mirror/speed/noise/shift/dropout x{args.aug_copies}",
+        "arch": arch_name,
+        "aug": f"{'heavy' if args.heavy_aug else 'std'} mirror/speed/noise/shift/dropout x{args.aug_copies}",
         "class_balancing": "WeightedRandomSampler + CE class weights",
         "wlasl100_subset": w100_metrics,
-        "previous": {"val_top1": 0.2544, "test_top1": 0.1667, "n_classes": 234, "trained_on": "wlasl100-coco135+synth-fill-aug"},
+        "previous": {
+            "val_top1": 0.2574,
+            "test_top1": 0.2093,
+            "n_classes": 234,
+            "trained_on": "synth+wlasl100+wlasl300",
+        },
+        "delta_vs_previous_wlasl100_test_pp": delta,
         "privacy": "offline public pose train; on-device Core ML inference; preferServer=false",
         "history_tail": history[-5:],
+        "window": window,
+        "gloss_map": True,
     }
-    (args.out.parent / "eval_report.json").write_text(json.dumps(report, indent=2))
+    report_path = args.report or (args.out.parent / "eval_report.json")
+    report_path.write_text(json.dumps(report, indent=2))
 
-    export_coreml(model, labels, FEATURE_DIM, args.coreml)
+    export_coreml(model, labels, FEATURE_DIM, args.coreml, window, arch_name)
     print("On-device: bundle ASLSignClassifier.mlpackage or copy to Documents/")
     return 0
 

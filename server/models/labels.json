@@ -235,79 +235,80 @@
     "THIN",
     "WOMAN"
   ],
-  "val_acc": 0.23751522600650787,
-  "val_top5": 0.4933008551597595,
-  "test_acc": 0.20000000298023224,
-  "test_top5": 0.427642285823822,
-  "trained_on": "synth+wlasl100+wlasl300",
+  "val_acc": 0.2725430727005005,
+  "val_top5": 0.5572441816329956,
+  "test_acc": 0.24754098057746887,
+  "test_top5": 0.5557377338409424,
+  "trained_on": "aslcitizen100+synth+wlasl100+wlasl300",
+  "arch": "tcn-bilstm",
   "top_confusions": [
     [
-      "BASKETBALL->SUNDAY",
+      "DARK->THINK",
+      6
+    ],
+    [
+      "BASKETBALL->WEATHER",
+      5
+    ],
+    [
+      "WHY->YESTERDAY",
+      5
+    ],
+    [
+      "FOOD->MONEY",
+      5
+    ],
+    [
+      "FOOD->THINK",
+      5
+    ],
+    [
+      "FOOD->SPELL",
+      5
+    ],
+    [
+      "STOP->BATHROOM",
+      5
+    ],
+    [
+      "STOP->MONTH",
+      5
+    ],
+    [
+      "CANDY->YESTERDAY",
+      5
+    ],
+    [
+      "DEAF->YESTERDAY",
+      5
+    ],
+    [
+      "DOG->THREE",
+      5
+    ],
+    [
+      "THEY->DOG",
+      5
+    ],
+    [
+      "BUT->DIFFERENT",
       4
     ],
     [
-      "NOW->PLAY",
+      "ORANGE->BIRD",
       4
     ],
     [
-      "ACCIDENT->EAT",
-      2
-    ],
-    [
-      "ACCIDENT->HAPPY",
-      2
-    ],
-    [
-      "AFRICA->FULL",
-      2
-    ],
-    [
-      "AFRICA->BROWN",
-      2
-    ],
-    [
-      "ALL->COOK",
-      2
-    ],
-    [
-      "ALL->CHANGE",
-      2
-    ],
-    [
-      "APPLE->YESTERDAY",
-      2
-    ],
-    [
-      "BED->DRINK",
-      2
-    ],
-    [
-      "BED->MOTHER",
-      2
-    ],
-    [
-      "BEFORE->WAIT",
-      2
-    ],
-    [
-      "BEFORE->WHY",
-      2
-    ],
-    [
-      "BEFORE->COOK",
-      2
-    ],
-    [
-      "BEFORE->YESTERDAY",
-      2
+      "WRONG->COLOR",
+      4
     ]
   ],
   "wlasl100_subset": {
-    "val_top1": 0.2573964595794678,
-    "val_top5": 0.5088757276535034,
+    "val_top1": 0.3165680468082428,
+    "val_top5": 0.5798816680908203,
     "n_val": 338,
-    "test_top1": 0.20930232107639313,
-    "test_top5": 0.43023255467414856,
+    "test_top1": 0.27906978130340576,
+    "test_top5": 0.5736433863639832,
     "n_test": 258
   }
 }

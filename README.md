@@ -15,7 +15,7 @@ Inspired by privacy-preserving landmark architectures (MediaPipe Holistic → st
 │  Camera → Vision holistic landmarks (hands + body + face)           │
 │       ↓ discard pixels                                              │
 │  LandmarkFrame buffer (~36 frames) + utterance segmentation         │
-│       ├── on-device Core ML PoseLSTM (DEFAULT — privacy first)       │
+│       ├── on-device Core ML TCN-BiLSTM (DEFAULT — privacy first)       │
 │       ├── heuristics fallback when ML low-confidence                │
 │       └── optional LAN WebSocket (dev only, off by default)         │
 │                                                                     │
@@ -84,7 +84,7 @@ On a physical iPhone, set **Settings → Continuous recognition** to
 | NMMs | Face/body cues drive questions / negation / emphasis |
 | Liquid Glass | iOS 27 chrome for controls; accessibility-first captions |
 | Siri / Apple Intelligence | App Intents, on-device polish/summary/suggestions, past chats |
-| On-device Core ML | Bundled `ASLSignClassifier.mlpackage` (PoseLSTM + NMM attention) |
+| On-device Core ML | Bundled `ASLSignClassifier.mlpackage` (TCN-BiLSTM + NMM attention); optional Daily head |
 | LandmarkRecorder | Optional friend JSON/JSONL / Create ML CSV (stays on device) |
 | Server (optional) | FastAPI WS + REST for LAN debug — **off by default** |
 
@@ -182,7 +182,7 @@ Details: [`MODELS.md`](MODELS.md) · server: [`server/README.md`](server/README.
 | NMM soft cues (question / negation / emphasis) on English | Reliable fine facial grammar / role shift |
 | Optional Train/Capture for a friend’s dialect | Automatic dialect discovery |
 
-**Expected gain vs heuristics-only:** measurable lift on glosses covered by WLASL pose pretrain (see `server/models/eval_report.json`: WLASL100 holdout **~26% val / ~21% test top-1**, **~51% / ~43% top-5**, 234-class head — above chance, below research GCN SLR). **Friend-specific fine-tune still required for comfortable 1:1 chat.**
+**Expected gain vs heuristics-only:** measurable lift on glosses covered by WLASL+Citizen pose pretrain (see `server/models/eval_report.json`: WLASL100 holdout **~32% val / ~28% test top-1**, **~58% / ~57% top-5**, 234-class TCN-BiLSTM head — +7pp vs prior ship, still below research RGB SLR). Optional dual daily-real head (~110 glosses) is higher on its closed set. **Friend-specific fine-tune still required for comfortable 1:1 chat.**
 
 ### How we train (offline, on your machines)
 

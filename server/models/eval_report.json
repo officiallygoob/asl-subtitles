@@ -1,137 +1,143 @@
 {
-  "val_top1": 0.23751522600650787,
-  "val_top5": 0.4933008551597595,
-  "test_top1": 0.20000000298023224,
-  "test_top5": 0.427642285823822,
+  "val_top1": 0.2725430727005005,
+  "val_top5": 0.5572441816329956,
+  "test_top1": 0.24754098057746887,
+  "test_top5": 0.5557377338409424,
   "n_classes": 234,
-  "n_train": 12216,
-  "n_train_raw": 5368,
-  "n_val": 821,
-  "n_test": 615,
+  "n_train": 18248,
+  "n_train_raw": 5840,
+  "n_val": 987,
+  "n_test": 1220,
   "top_confusions": [
     [
-      "BASKETBALL->SUNDAY",
+      "DARK->THINK",
+      6
+    ],
+    [
+      "BASKETBALL->WEATHER",
+      5
+    ],
+    [
+      "WHY->YESTERDAY",
+      5
+    ],
+    [
+      "FOOD->MONEY",
+      5
+    ],
+    [
+      "FOOD->THINK",
+      5
+    ],
+    [
+      "FOOD->SPELL",
+      5
+    ],
+    [
+      "STOP->BATHROOM",
+      5
+    ],
+    [
+      "STOP->MONTH",
+      5
+    ],
+    [
+      "CANDY->YESTERDAY",
+      5
+    ],
+    [
+      "DEAF->YESTERDAY",
+      5
+    ],
+    [
+      "DOG->THREE",
+      5
+    ],
+    [
+      "THEY->DOG",
+      5
+    ],
+    [
+      "BUT->DIFFERENT",
       4
     ],
     [
-      "NOW->PLAY",
+      "ORANGE->BIRD",
       4
     ],
     [
-      "ACCIDENT->EAT",
-      2
-    ],
-    [
-      "ACCIDENT->HAPPY",
-      2
-    ],
-    [
-      "AFRICA->FULL",
-      2
-    ],
-    [
-      "AFRICA->BROWN",
-      2
-    ],
-    [
-      "ALL->COOK",
-      2
-    ],
-    [
-      "ALL->CHANGE",
-      2
-    ],
-    [
-      "APPLE->YESTERDAY",
-      2
-    ],
-    [
-      "BED->DRINK",
-      2
-    ],
-    [
-      "BED->MOTHER",
-      2
-    ],
-    [
-      "BEFORE->WAIT",
-      2
-    ],
-    [
-      "BEFORE->WHY",
-      2
-    ],
-    [
-      "BEFORE->COOK",
-      2
-    ],
-    [
-      "BEFORE->YESTERDAY",
-      2
+      "WRONG->COLOR",
+      4
     ]
   ],
-  "trained_on": "synth+wlasl100+wlasl300",
-  "arch": "poselstm-v3-stable-nmm-attn",
-  "aug": "mirror/speed/noise/shift/dropout x2",
+  "trained_on": "aslcitizen100+synth+wlasl100+wlasl300",
+  "arch": "tcn-bilstm-nmm",
+  "aug": "heavy mirror/speed/noise/shift/dropout x3",
   "class_balancing": "WeightedRandomSampler + CE class weights",
   "wlasl100_subset": {
-    "val_top1": 0.2573964595794678,
-    "val_top5": 0.5088757276535034,
+    "val_top1": 0.3165680468082428,
+    "val_top5": 0.5798816680908203,
     "n_val": 338,
-    "test_top1": 0.20930232107639313,
-    "test_top5": 0.43023255467414856,
+    "test_top1": 0.27906978130340576,
+    "test_top5": 0.5736433863639832,
     "n_test": 258
   },
   "previous": {
-    "val_top1": 0.2544,
-    "test_top1": 0.1667,
+    "val_top1": 0.2574,
+    "test_top1": 0.2093,
     "n_classes": 234,
-    "trained_on": "wlasl100-coco135+synth-fill-aug"
+    "trained_on": "synth+wlasl100+wlasl300"
   },
+  "delta_vs_previous_wlasl100_test_pp": 6.976978130340575,
   "privacy": "offline public pose train; on-device Core ML inference; preferServer=false",
   "history_tail": [
     {
       "epoch": 24,
-      "loss": 1.0215746022629129,
-      "val_top1": 0.23386114835739136,
-      "test_top1": 0.18536585569381714
+      "loss": 1.4269105651722516,
+      "val_top1": 0.2593718469142914,
+      "test_top1": 0.2540983557701111
     },
     {
       "epoch": 25,
-      "loss": 0.984664762652459,
-      "val_top1": 0.2204628437757492,
-      "test_top1": 0.19512194395065308
+      "loss": 1.381587251557012,
+      "val_top1": 0.2725430727005005,
+      "test_top1": 0.24754098057746887
     },
     {
       "epoch": 26,
-      "loss": 0.9788387185932377,
-      "val_top1": 0.2216808795928955,
-      "test_top1": 0.20000000298023224
+      "loss": 1.3779343050438706,
+      "val_top1": 0.26950353384017944,
+      "test_top1": 0.26147541403770447
     },
     {
       "epoch": 27,
-      "loss": 0.9416124708682162,
-      "val_top1": 0.23751522600650787,
-      "test_top1": 0.20000000298023224
+      "loss": 1.3610962088408045,
+      "val_top1": 0.2705167233943939,
+      "test_top1": 0.25901639461517334
     },
     {
       "epoch": 28,
-      "loss": 0.9167733758434253,
-      "val_top1": 0.23142509162425995,
-      "test_top1": 0.19837398827075958
+      "loss": 1.3579339786665003,
+      "val_top1": 0.2644376754760742,
+      "test_top1": 0.2565573751926422
     }
   ],
+  "window": 32,
+  "gloss_map": true,
   "comparable_wlasl100": {
-    "val_top1": 0.2574,
-    "val_top5": 0.5089,
-    "test_top1": 0.2093,
-    "test_top5": 0.4302,
+    "val_top1": 0.3166,
+    "val_top5": 0.5799,
+    "test_top1": 0.2791,
+    "test_top5": 0.5736,
     "n_val": 338,
     "n_test": 258
   },
-  "delta_vs_previous": {
-    "val_top1_pp": 0.3,
-    "test_top1_pp": 4.26
-  },
-  "notes": "Shipping head=234 (GLOSS_VOCAB\u222aWLASL100). Trained with WLASL300 overlapping glosses + aug. ASL Citizen downloaded but excluded from shipping head (gloss ID mismatch). How2Sign skipped (continuous SLT)."
+  "notes": "Shipping full head=234 (GLOSS_VOCAB\u222aWLASL100). TCN-BiLSTM + heavy aug + ASL Citizen via gloss_map. Dual daily-real head=110 in ASLSignClassifierDaily.mlpackage (39.5% on WLASL100\u2229daily, not comparable to full 100-class). preferServer=false.",
+  "dual_daily": {
+    "n_classes": 110,
+    "path": "ASLSubtitles/Models/ASLSignClassifierDaily.mlpackage",
+    "overall_test_top1": 0.3012,
+    "wlasl100_overlap_test_top1": 0.3953,
+    "note": "WLASL100\u2229daily is easier closed-set; do not compare directly to full-head 27.9%"
+  }
 }

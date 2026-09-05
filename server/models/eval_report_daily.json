@@ -1,0 +1,127 @@
+{
+  "val_top1": 0.321928471326828,
+  "val_top5": 0.6049766540527344,
+  "test_top1": 0.3011917769908905,
+  "test_top5": 0.5763813853263855,
+  "n_classes": 110,
+  "n_train": 13395,
+  "n_train_raw": 2679,
+  "n_val": 643,
+  "n_test": 923,
+  "top_confusions": [
+    [
+      "SPELL->FOOD",
+      6
+    ],
+    [
+      "WHY->FOOD",
+      6
+    ],
+    [
+      "WHY->MONEY",
+      5
+    ],
+    [
+      "FOOD->NIGHT",
+      5
+    ],
+    [
+      "LEAVE->FOOD",
+      5
+    ],
+    [
+      "BLACK->YESTERDAY",
+      4
+    ],
+    [
+      "NO->DOG",
+      4
+    ],
+    [
+      "FOOD->SPELL",
+      4
+    ],
+    [
+      "CALL->WRITE",
+      4
+    ],
+    [
+      "CANDY->YESTERDAY",
+      4
+    ],
+    [
+      "DONT-KNOW->STOP",
+      4
+    ],
+    [
+      "DEAF->APPLE",
+      3
+    ],
+    [
+      "MONEY->SPELL",
+      3
+    ],
+    [
+      "BATHROOM->STOP",
+      3
+    ],
+    [
+      "FOOD->WHY",
+      3
+    ]
+  ],
+  "trained_on": "aslcitizen100+wlasl100+wlasl300",
+  "arch": "tcn-bilstm-nmm",
+  "aug": "heavy mirror/speed/noise/shift/dropout x4",
+  "class_balancing": "WeightedRandomSampler + CE class weights",
+  "wlasl100_subset": {
+    "val_top1": 0.3583815097808838,
+    "val_top5": 0.6184971332550049,
+    "n_val": 173,
+    "test_top1": 0.39534884691238403,
+    "test_top5": 0.5968992114067078,
+    "n_test": 129
+  },
+  "previous": {
+    "val_top1": 0.2574,
+    "test_top1": 0.2093,
+    "n_classes": 234,
+    "trained_on": "synth+wlasl100+wlasl300"
+  },
+  "delta_vs_previous_wlasl100_test_pp": 18.604884691238404,
+  "privacy": "offline public pose train; on-device Core ML inference; preferServer=false",
+  "history_tail": [
+    {
+      "epoch": 28,
+      "loss": 0.7535635347462448,
+      "val_top1": 0.31570762395858765,
+      "test_top1": 0.29360780119895935
+    },
+    {
+      "epoch": 29,
+      "loss": 0.7468588507144297,
+      "val_top1": 0.325038880109787,
+      "test_top1": 0.2871072590351105
+    },
+    {
+      "epoch": 30,
+      "loss": 0.7315099303604018,
+      "val_top1": 0.325038880109787,
+      "test_top1": 0.30985915660858154
+    },
+    {
+      "epoch": 31,
+      "loss": 0.7260826684325967,
+      "val_top1": 0.33281493186950684,
+      "test_top1": 0.3011917769908905
+    },
+    {
+      "epoch": 32,
+      "loss": 0.7145005878560264,
+      "val_top1": 0.3110419809818268,
+      "test_top1": 0.2925243675708771
+    }
+  ],
+  "window": 32,
+  "gloss_map": true
+}

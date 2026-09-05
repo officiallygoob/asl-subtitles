@@ -57,3 +57,10 @@ server/models/sign_classifier_multisource*.pt
 server/models/eval_report_multisource*.json
 server/models/pose_features*.npz
 !server/models/sign_classifier.pt
+
+# Dual daily Core ML head + eval
+!ASLSubtitles/Models/ASLSignClassifierDaily.mlpackage
+!ASLSubtitles/Models/ASLSignClassifierDaily.labels.json
+!server/models/sign_classifier_daily.pt
+!server/models/eval_report.json
+!server/models/eval_report_daily.json

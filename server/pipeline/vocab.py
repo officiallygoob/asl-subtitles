@@ -51,10 +51,44 @@ CONVERSATION_GLOSSES: list[str] = [
 ]
 
 
-def unique_glosses() -> list[str]:
+# ~130 highest-priority daily chat glosses (subset of CONVERSATION_GLOSSES).
+# Used for the optional dual "daily vocab" Core ML head.
+DAILY_GLOSSES: list[str] = [
+    "HELLO", "HI", "BYE", "SEE", "LATER", "GOOD-MORNING", "GOOD-NIGHT",
+    "THANKS", "PLEASE", "SORRY", "EXCUSE",
+    "ME", "YOU", "WE", "THEY", "MY", "YOUR", "NAME", "FRIEND", "FAMILY",
+    "MOTHER", "FATHER", "SISTER", "BROTHER", "BABY", "DEAF", "HEARING",
+    "WHAT", "WHERE", "WHEN", "WHO", "WHY", "HOW", "WHICH",
+    "YES", "NO", "OK", "MAYBE", "TRUE", "FALSE", "RIGHT", "WRONG",
+    "GOOD", "BAD", "FINE", "GREAT", "MORE", "SAME", "DIFFERENT",
+    "BIG", "SMALL", "NEW", "OLD",
+    "WANT", "NEED", "HELP", "UNDERSTAND", "KNOW", "DONT-KNOW", "LIKE", "LOVE",
+    "GO", "COME", "STOP", "WAIT", "AGAIN", "SLOW",
+    "GIVE", "TAKE", "HAVE", "MAKE", "THINK", "FEEL", "REMEMBER", "FORGET",
+    "TELL", "ASK", "CALL", "LEAVE", "STAY", "PLAY", "READ", "WORK", "LOOK",
+    "SPELL", "WRITE", "SIGN",
+    "EAT", "DRINK", "FOOD", "WATER", "COFFEE", "HUNGRY", "THIRSTY",
+    "HOME", "SCHOOL", "STORE", "HOSPITAL", "BATHROOM", "HERE", "THERE", "CITY",
+    "TIME", "TODAY", "TOMORROW", "YESTERDAY", "NOW", "MORNING", "NIGHT",
+    "WEEK", "MONTH", "YEAR",
+    "HAPPY", "SAD", "TIRED", "HOT", "COLD", "ANGRY", "SICK", "HURT",
+    "ONE", "TWO", "THREE", "FOUR", "FIVE",
+    "PHONE", "MONEY", "BUY", "BUSY", "READY", "IMPORTANT", "PROBLEM", "QUESTION",
+    "WALK", "SLEEP", "BOOK",
+    "RED", "BLUE", "BLACK", "WHITE",
+    "RAIN", "SUN", "WEATHER",
+    "MONDAY", "FRIDAY", "SATURDAY", "SUNDAY",
+    "ENGLISH", "ASL",
+    # High-frequency WLASL conversational that friends still use
+    "FINISH", "CAN", "BEFORE", "CHANGE", "DECIDE", "MEET", "NICE", "WELCOME",
+    "CLOTHES", "COMPUTER", "DOCTOR", "FAMILY", "APPLE", "CANDY", "DOG",
+]
+
+
+def unique_glosses(seq: list[str] | None = None) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []
-    for g in CONVERSATION_GLOSSES:
+    for g in (seq if seq is not None else CONVERSATION_GLOSSES):
         if g not in seen:
             seen.add(g)
             out.append(g)
@@ -62,3 +96,4 @@ def unique_glosses() -> list[str]:
 
 
 GLOSS_VOCAB = unique_glosses()
+DAILY_VOCAB = unique_glosses(DAILY_GLOSSES)

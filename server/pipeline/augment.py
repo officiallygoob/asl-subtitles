@@ -130,3 +130,55 @@ def augment_sequence(seq: np.ndarray, rng: np.random.Generator) -> np.ndarray:
     if rng.random() < 0.35:
         out = joint_dropout(out, rng)
     return out.astype(np.float32)
+
+
+def time_mask(seq: np.ndarray, rng: np.random.Generator, max_width: int = 4) -> np.ndarray:
+    """SpecAugment-style temporal mask (zero a short contiguous span)."""
+    out = seq.copy()
+    T = out.shape[0]
+    if T < 10:
+        return out
+    w = int(rng.integers(1, max_width + 1))
+    start = int(rng.integers(0, max(1, T - w)))
+    out[start : start + w] = 0.0
+    return out.astype(np.float32)
+
+
+def spatial_scale(seq: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    """Mild isotropic scale around origin (camera distance jitter)."""
+    out = seq.copy()
+    s = float(rng.uniform(0.85, 1.15))
+    out[:, :ACTIVITY_IDX] *= s
+    return out.astype(np.float32)
+
+
+def hand_emphasize_noise(seq: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    """Extra noise on hands (phone Vision hand jitter is worse than body)."""
+    out = seq.copy()
+    sigma = float(rng.uniform(0.01, 0.035))
+    out[:, LH] += rng.normal(0.0, sigma, size=out[:, LH].shape).astype(np.float32)
+    out[:, RH] += rng.normal(0.0, sigma, size=out[:, RH].shape).astype(np.float32)
+    return out.astype(np.float32)
+
+
+def augment_sequence_heavy(seq: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    """Stronger aug stack for limited public-pose regimes."""
+    out = seq.astype(np.float32, copy=True)
+    if rng.random() < 0.55:
+        out = mirror_sequence(out)
+    if rng.random() < 0.85:
+        factor = float(rng.uniform(0.55, 1.55))
+        out = speed_resample(out, factor, rng)
+    if rng.random() < 0.9:
+        out = add_noise(out, rng, sigma=float(rng.uniform(0.01, 0.035)))
+    if rng.random() < 0.55:
+        out = temporal_shift(out, rng, max_shift=5)
+    if rng.random() < 0.45:
+        out = joint_dropout(out, rng, p=0.12)
+    if rng.random() < 0.4:
+        out = time_mask(out, rng)
+    if rng.random() < 0.4:
+        out = spatial_scale(out, rng)
+    if rng.random() < 0.5:
+        out = hand_emphasize_noise(out, rng)
+    return out.astype(np.float32)
