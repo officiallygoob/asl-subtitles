@@ -56,7 +56,7 @@ Health check: `curl http://127.0.0.1:8765/health`
 
 See root [`MODELS.md`](../MODELS.md).
 
-**Shipping default:** `models/sign_classifier.pt` (TCN-BiLSTM, 234-class head; Citizen merged via gloss_map).
+**Shipping default:** `models/sign_classifier.pt` (TCN-BiLSTM, 240-class head; Citizen merged via gloss_map).
 
 Also supported:
 

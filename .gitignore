@@ -64,3 +64,27 @@ server/models/pose_features*.npz
 !server/models/sign_classifier_daily.pt
 !server/models/eval_report.json
 !server/models/eval_report_daily.json
+
+!server/models/sign_classifier_daily_dense.pt
+!server/models/eval_report_daily_dense.json
+!server/models/eval_report_daily_real.json
+!server/models/gloss_bigram_prior.json
+!ASLSubtitles/Models/ASLSignClassifierFull.mlpackage
+!ASLSubtitles/Models/ASLSignClassifierFull.labels.json
+
+!server/models/sign_classifier_daily_core30.pt
+!server/models/eval_report_daily_core30.json
+
+# Scratch teachers / experiment heads (do not ship)
+server/models/*_teacher.pt
+server/models/sign_classifier_daily_dense.pt
+server/models/sign_classifier_daily_core15.pt
+server/models/eval_report_daily_dense.json
+server/models/eval_report_daily_core15.json
+server/models/eval_report_daily_core30_ensemble.json
+!server/models/sign_classifier_daily_core30.pt
+!server/models/eval_report_daily_core30.json
+!server/models/gloss_bigram_prior.json
+!server/models/eval_report_daily_real.json
+
+server/models/sign_classifier_daily_real.pt

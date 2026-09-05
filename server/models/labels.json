@@ -173,6 +173,12 @@
     "SUNDAY",
     "ENGLISH",
     "ASL",
+    "ABOUT",
+    "AND",
+    "BOY",
+    "MOVIE",
+    "PARTY",
+    "CHRISTMAS",
     "ACCIDENT",
     "AFRICA",
     "ALL",
@@ -235,80 +241,18 @@
     "THIN",
     "WOMAN"
   ],
-  "val_acc": 0.2725430727005005,
-  "val_top5": 0.5572441816329956,
-  "test_acc": 0.24754098057746887,
-  "test_top5": 0.5557377338409424,
+  "val_acc": 0.33236435055732727,
+  "val_top5": 0.5978682041168213,
+  "test_acc": 0.309325248003006,
+  "test_top5": 0.5670962929725647,
   "trained_on": "aslcitizen100+synth+wlasl100+wlasl300",
-  "arch": "tcn-bilstm",
-  "top_confusions": [
-    [
-      "DARK->THINK",
-      6
-    ],
-    [
-      "BASKETBALL->WEATHER",
-      5
-    ],
-    [
-      "WHY->YESTERDAY",
-      5
-    ],
-    [
-      "FOOD->MONEY",
-      5
-    ],
-    [
-      "FOOD->THINK",
-      5
-    ],
-    [
-      "FOOD->SPELL",
-      5
-    ],
-    [
-      "STOP->BATHROOM",
-      5
-    ],
-    [
-      "STOP->MONTH",
-      5
-    ],
-    [
-      "CANDY->YESTERDAY",
-      5
-    ],
-    [
-      "DEAF->YESTERDAY",
-      5
-    ],
-    [
-      "DOG->THREE",
-      5
-    ],
-    [
-      "THEY->DOG",
-      5
-    ],
-    [
-      "BUT->DIFFERENT",
-      4
-    ],
-    [
-      "ORANGE->BIRD",
-      4
-    ],
-    [
-      "WRONG->COLOR",
-      4
-    ]
-  ],
+  "arch": "tcn-bilstm-nmm",
   "wlasl100_subset": {
-    "val_top1": 0.3165680468082428,
-    "val_top5": 0.5798816680908203,
+    "val_top1": 0.3757396340370178,
+    "val_top5": 0.6094674468040466,
     "n_val": 338,
-    "test_top1": 0.27906978130340576,
-    "test_top5": 0.5736433863639832,
+    "test_top1": 0.341085284948349,
+    "test_top5": 0.6162790656089783,
     "n_test": 258
   }
 }

@@ -20,20 +20,31 @@ SYNONYM_MAP: dict[str, str] = {
     "BATH": "BATHROOM",
     "TOILET": "BATHROOM",
     "RESTROOM": "BATHROOM",
+    "REST-ROOM": "BATHROOM",
+    "WASHROOM": "BATHROOM",
     # Communication
     "CALLTTY": "CALL",
     "TELEPHONE": "PHONE",
+    "CELLPHONE": "PHONE",
+    "CELL": "PHONE",
+    "MOBILE": "PHONE",
     "TYPE": "WRITE",
     "TYPING": "WRITE",
     "ALPHABET": "SPELL",
     "FINGERSPELL": "SPELL",
     "FINGERSPELLING": "SPELL",
+    "SMS": "TEXT",
+    "TEXTING": "TEXT",
+    "EMAILING": "EMAIL",
     # WH / people probes
     "WHATFOR": "WHY",
     "WHAT-FOR": "WHY",
     "HOWCOME": "WHY",
     "ANYONE": "WHO",
     "SOMEONE": "WHO",
+    "WHAT-UP": "WHAT",
+    "WHATS-UP": "WHAT",
+    "WHATSUP": "WHAT",
     # Time
     "AFTER": "LATER",
     "AFTERWARDS": "LATER",
@@ -70,6 +81,34 @@ SYNONYM_MAP: dict[str, str] = {
     "CANCEL": "STOP",
     "CANCELLATION": "STOP",
     "CONFUSED": "DONT-KNOW",
+    # Family (near-identity lemmas)
+    "MOM": "MOTHER",
+    "MOMMY": "MOTHER",
+    "MAMA": "MOTHER",
+    "DAD": "FATHER",
+    "DADDY": "FATHER",
+    "PAPA": "FATHER",
+    # Greetings / politeness
+    "GOODBYE": "BYE",
+    "GOOD-BYE": "BYE",
+    "THANKYOU": "THANKS",
+    "THANK-YOU": "THANKS",
+    "THANK": "THANKS",
+    "OKAY": "OK",
+    "ALRIGHT": "OK",
+    "ALL-RIGHT": "OK",
+    "NOPE": "NO",
+    "YEP": "YES",
+    "YUP": "YES",
+    "YEAH": "YES",
+    # Film / social (targets must be in shipping vocab)
+    "FILM": "MOVIE",
+    "CINEMA": "MOVIE",
+    "MOVIES": "MOVIE",
+    # Soft kid bucket for chat
+    "KID": "BABY",
+    "CHILD": "BABY",
+    "CHILDREN": "BABY",
 }
 
 _SENSE_RE = re.compile(r"^(.*?)(\d+)$")
@@ -133,3 +172,4 @@ def mapping_report(raw_labels: list[str], allowed: set[str]) -> dict:
         "orphan_sample": sorted(set(orphan))[:40],
         "synonym_map_size": len(SYNONYM_MAP),
     }
+

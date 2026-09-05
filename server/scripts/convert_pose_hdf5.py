@@ -28,7 +28,7 @@ sys.path.insert(0, str(ROOT))
 
 from pipeline.coco135 import coco135_sequence_to_features, pad_or_trim  # noqa: E402
 from pipeline.gloss_map import canonicalize_gloss, mapping_report, strip_sense_suffix  # noqa: E402
-from pipeline.vocab import DAILY_VOCAB, GLOSS_VOCAB  # noqa: E402
+from pipeline.vocab import DAILY_DENSE, DAILY_VOCAB, GLOSS_VOCAB  # noqa: E402
 
 SOURCE_SPECS = {
     "wlasl100": ("wlasl100", "WLASL100_135"),
@@ -91,6 +91,11 @@ def main() -> int:
         action="store_true",
         help="Closed-set daily conversational head (~DAILY_VOCAB, ~120–150)",
     )
+    ap.add_argument(
+        "--daily-dense",
+        action="store_true",
+        help="High-density daily head (~DAILY_DENSE, ~60–70 well-supported glosses)",
+    )
     args = ap.parse_args()
 
     source_names = [s.strip().lower() for s in args.sources.split(",") if s.strip()]
@@ -102,7 +107,10 @@ def main() -> int:
         raw_map = json.loads(w100_path.read_text())
         w100_glosses = {strip_sense_suffix(k) for k in raw_map.get("id_to_label", {}).keys()}
 
-    if args.daily_vocab:
+    if args.daily_dense:
+        base_vocab = list(DAILY_DENSE)
+        keep_seed = set(DAILY_DENSE)
+    elif args.daily_vocab:
         base_vocab = list(DAILY_VOCAB)
         keep_seed = set(DAILY_VOCAB)
     else:
@@ -154,22 +162,20 @@ def main() -> int:
     )
 
     real_glosses = sorted(set(all_y_gloss))
-    if args.daily_vocab:
-        keep_set = set(DAILY_VOCAB)
-        # Also keep daily labels that appear after mapping even if not in seed list
-        keep_set |= {g for g in real_glosses if g in DAILY_VOCAB}
+    if args.daily_dense or args.daily_vocab:
+        seed = list(DAILY_DENSE) if args.daily_dense else list(DAILY_VOCAB)
+        tag = "daily-dense" if args.daily_dense else "daily-vocab"
+        keep_set = set(seed)
+        keep_set |= {g for g in real_glosses if g in keep_set}
         kept = [(x, g, sp, src) for x, g, sp, src in zip(all_X, all_y_gloss, split_ids, source_ids) if g in keep_set]
         all_X = [k[0] for k in kept]
         all_y_gloss = [k[1] for k in kept]
         split_ids = [k[2] for k in kept]
         source_ids = [k[3] for k in kept]
         real_glosses = sorted(set(all_y_gloss))
-        print(f"daily-vocab: kept {len(all_X)} samples, glosses={len(real_glosses)}")
-        union = list(dict.fromkeys([g for g in DAILY_VOCAB if g in set(real_glosses) or True]))
-        # Prefer stable order: DAILY_VOCAB first, then any extras
-        extras = [g for g in real_glosses if g not in set(DAILY_VOCAB)]
-        union = list(dict.fromkeys(list(DAILY_VOCAB) + extras))
-        # Drop daily glosses with zero samples after filter? Keep them for synth fill.
+        print(f"{tag}: kept {len(all_X)} samples, glosses={len(real_glosses)}")
+        extras = [g for g in real_glosses if g not in set(seed)]
+        union = list(dict.fromkeys(list(seed) + extras))
     elif args.focus_wlasl100:
         w100 = {g for g, s in zip(all_y_gloss, source_ids) if s == "wlasl100"}
         keep_set = set(GLOSS_VOCAB) | w100
@@ -188,7 +194,12 @@ def main() -> int:
         from scripts.synthesize_pose_dataset import synthesize_sequence
 
         rng = np.random.default_rng(11)
-        target_vocab = list(DAILY_VOCAB) if args.daily_vocab else list(GLOSS_VOCAB)
+        if args.daily_dense:
+            target_vocab = list(DAILY_DENSE)
+        elif args.daily_vocab:
+            target_vocab = list(DAILY_VOCAB)
+        else:
+            target_vocab = list(GLOSS_VOCAB)
         missing = [g for g in target_vocab if g not in set(real_glosses)]
         print(f"synth-fill {len(missing)} conversational glosses × {args.synth_per_class}")
         for g in missing:
@@ -225,7 +236,7 @@ def main() -> int:
         source=np.array(source_ids),
     )
     legacy = args.out.parent / "wlasl100_features.npz"
-    if args.out.resolve() != legacy.resolve() and not args.daily_vocab:
+    if args.out.resolve() != legacy.resolve() and not args.daily_vocab and not args.daily_dense:
         np.savez_compressed(
             legacy,
             X=X,
@@ -253,7 +264,11 @@ def main() -> int:
         "gloss_map": report,
         "citizen_mapped_glosses": cit_glosses,
         "n_citizen_rows": int(sum(cit_mask)),
-        "mode": "daily" if args.daily_vocab else ("focus-wlasl100" if args.focus_wlasl100 else "full"),
+        "mode": (
+            "daily-dense" if args.daily_dense else
+            "daily" if args.daily_vocab else
+            ("focus-wlasl100" if args.focus_wlasl100 else "full")
+        ),
         "packaging": "CristianLazoQuispe/pose-action-recognition (MIT landmark packaging)",
         "underlying_video": "WLASL research/C-UDA; ASL Citizen Microsoft research license — landmarks only stored",
         "how2sign": "skipped — continuous SLT shards large / different task; document as next continuous path",
@@ -262,7 +277,7 @@ def main() -> int:
     if args.out.name.endswith(".npz"):
         meta_path = args.out.parent / (args.out.stem + ".meta.json")
     meta_path.write_text(json.dumps(meta, indent=2))
-    if not args.daily_vocab:
+    if not args.daily_vocab and not args.daily_dense:
         (args.out.parent / "pose_features.meta.json").write_text(json.dumps(meta, indent=2))
         (args.out.parent / "wlasl100_features.meta.json").write_text(json.dumps(meta, indent=2))
     print(f"wrote {args.out} X={X.shape} classes={len(union)} loaded={loaded} citizen_rows={sum(cit_mask)}")

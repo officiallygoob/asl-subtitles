@@ -182,3 +182,19 @@ def augment_sequence_heavy(seq: np.ndarray, rng: np.random.Generator) -> np.ndar
     if rng.random() < 0.5:
         out = hand_emphasize_noise(out, rng)
     return out.astype(np.float32)
+
+
+def mixup_pair(
+    a: np.ndarray,
+    b: np.ndarray,
+    rng: np.random.Generator,
+    alpha: float = 0.2,
+) -> tuple[np.ndarray, float]:
+    """Pose-sequence mixup. Returns mixed sequence and lambda (weight on a)."""
+    if alpha <= 0:
+        return a.astype(np.float32), 1.0
+    lam = float(rng.beta(alpha, alpha))
+    lam = max(0.0, min(1.0, lam))
+    # Align lengths (already fixed window in training)
+    mixed = (lam * a + (1.0 - lam) * b).astype(np.float32)
+    return mixed, lam

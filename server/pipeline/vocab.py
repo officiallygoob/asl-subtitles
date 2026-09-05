@@ -48,6 +48,8 @@ CONVERSATION_GLOSSES: list[str] = [
     "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY",
     # Conversation repair
     "SPELL", "WRITE", "LOOK", "ENGLISH", "ASL",
+    # High-frequency ASL Citizen / WLASL300 conversational (first-class, not synonym merges)
+    "ABOUT", "AND", "BOY", "MOVIE", "PARTY", "CHRISTMAS",
 ]
 
 
@@ -82,8 +84,33 @@ DAILY_GLOSSES: list[str] = [
     # High-frequency WLASL conversational that friends still use
     "FINISH", "CAN", "BEFORE", "CHANGE", "DECIDE", "MEET", "NICE", "WELCOME",
     "CLOTHES", "COMPUTER", "DOCTOR", "FAMILY", "APPLE", "CANDY", "DOG",
+    "ABOUT", "AND", "BOY", "MOVIE", "PARTY", "CHRISTMAS",
 ]
 
+
+
+# Dense daily head: conversational glosses with enough multi-source pose (≥~20 train).
+# Honest closed-set eval only — do not compare to full 234-class WLASL100 holdout.
+DAILY_DENSE_GLOSSES: list[str] = [
+    "BOOK", "FOOD", "WHY", "WHO", "DEAF", "DOG", "CANDY", "DRINK", "FINE", "NEED",
+    "TIME", "DECIDE", "EAT", "APPLE", "LATER", "COMPUTER", "GO", "BEFORE", "CLOTHES",
+    "BATHROOM", "BLACK", "BLUE", "CAN", "FAMILY", "HEARING", "HELP", "HOT", "MOTHER",
+    "NO", "NOW", "WALK", "WHITE", "YEAR", "YES", "WRONG", "STOP", "YESTERDAY", "WRITE",
+    "CHANGE", "FINISH", "FORGET", "LIKE", "MEET", "PLAY", "SCHOOL", "WANT", "WHAT",
+    "WORK", "BROTHER", "CITY", "DOCTOR", "GIVE", "TELL", "MONEY", "TAKE", "CALL",
+    "LEAVE", "HOW", "RIGHT", "SAME",
+    # Added Citizen conversational with real pose
+    "ABOUT", "AND", "BOY", "MOVIE", "PARTY", "CHRISTMAS",
+]
+
+
+# Ultra-dense 30-class daily head (highest sample support). Honest closed-set only.
+DAILY_CORE30_GLOSSES: list[str] = [
+    "BOOK", "FOOD", "WHY", "WHO", "DEAF", "DOG", "CANDY", "DRINK", "FINE", "NEED",
+    "TIME", "DECIDE", "EAT", "APPLE", "LATER", "COMPUTER", "GO", "BEFORE", "CLOTHES",
+    "BATHROOM", "BLACK", "BLUE", "CAN", "FAMILY", "HEARING", "HELP", "HOT", "MOTHER",
+    "NO", "NOW",
+]
 
 def unique_glosses(seq: list[str] | None = None) -> list[str]:
     seen: set[str] = set()
@@ -97,3 +124,5 @@ def unique_glosses(seq: list[str] | None = None) -> list[str]:
 
 GLOSS_VOCAB = unique_glosses()
 DAILY_VOCAB = unique_glosses(DAILY_GLOSSES)
+DAILY_DENSE = unique_glosses(DAILY_DENSE_GLOSSES)
+DAILY_CORE30 = unique_glosses(DAILY_CORE30_GLOSSES)

@@ -105,6 +105,9 @@ final class CoreMLSignClassifier {
     }
 
     /// Classify a temporal window of landmark feature vectors (preferably FEATURE_DIM=170).
+    /// Previous accepted gloss for on-device bigram top-k rerank (nil = plain argmax).
+    var previousGloss: String?
+
     func classify(window: [[Double]]) -> RecognitionResult? {
         guard isAvailable, let model, !window.isEmpty else { return nil }
 
@@ -219,7 +222,14 @@ final class CoreMLSignClassifier {
         let sum = exps.reduce(0, +)
         guard sum > 0 else { return nil }
         exps = exps.map { $0 / sum }
-        guard let bestIdx = exps.indices.max(by: { exps[$0] < exps[$1] }) else { return nil }
+        let bestIdx: Int
+        if labels.count == exps.count {
+            bestIdx = GlossBigramPrior.rerank(probs: exps, labels: labels, prevGloss: previousGloss)
+        } else if let idx = exps.indices.max(by: { exps[$0] < exps[$1] }) {
+            bestIdx = idx
+        } else {
+            return nil
+        }
         let conf = exps[bestIdx]
         guard conf >= confidenceThreshold else { return nil }
         let label: String

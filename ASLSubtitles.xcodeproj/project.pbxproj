@@ -15,6 +15,7 @@
 		5926752B5A1548F7803F90C3 /* ConversationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7BBB536F4494712A2985C83 /* ConversationView.swift */; };
 		3BE4A3E1BB7542BA8BC2D646 /* HolisticLandmarkOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = F95511890F114294A8214322 /* HolisticLandmarkOverlay.swift */; };
 		FC2E279F7BC0418AAB4A8B95 /* CoreMLSignClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = D85A001E337D4068921ABBCD /* CoreMLSignClassifier.swift */; };
+		A1BIGRAM00000000000002 /* GlossBigramPrior.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BIGRAM00000000000001 /* GlossBigramPrior.swift */; };
 		D32E2017132841969CAB6A6F /* LandmarkRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7744D425A5334F6F8E7E8946 /* LandmarkRecorder.swift */; };
 		509F05FC3E634C6786007036 /* ASLSubtitlesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1892847555D14EE49AF54D9F /* ASLSubtitlesApp.swift */; };
 		8B6CA265A11446CAA64E8F14 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193A791F525B436E978545CC /* ContentView.swift */; };
@@ -71,6 +72,7 @@
 		F7BBB536F4494712A2985C83 /* ConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationView.swift; sourceTree = "<group>"; };
 		F95511890F114294A8214322 /* HolisticLandmarkOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolisticLandmarkOverlay.swift; sourceTree = "<group>"; };
 		D85A001E337D4068921ABBCD /* CoreMLSignClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreMLSignClassifier.swift; sourceTree = "<group>"; };
+		A1BIGRAM00000000000001 /* GlossBigramPrior.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlossBigramPrior.swift; sourceTree = "<group>"; };
 		7744D425A5334F6F8E7E8946 /* LandmarkRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkRecorder.swift; sourceTree = "<group>"; };
 		1892847555D14EE49AF54D9F /* ASLSubtitlesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASLSubtitlesApp.swift; sourceTree = "<group>"; };
 		193A791F525B436E978545CC /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -191,6 +193,7 @@
 				66FC30B319344B5FAD63ED85 /* SignRecognizer.swift */,
 				A1NMM00000000000000005 /* GlossEnglish.swift */,
 				D85A001E337D4068921ABBCD /* CoreMLSignClassifier.swift */,
+				A1BIGRAM00000000000001 /* GlossBigramPrior.swift */,
 				7744D425A5334F6F8E7E8946 /* LandmarkRecorder.swift */,
 			);
 			path = Recognition;
@@ -434,6 +437,7 @@
 				5926752B5A1548F7803F90C3 /* ConversationView.swift in Sources */,
 				3BE4A3E1BB7542BA8BC2D646 /* HolisticLandmarkOverlay.swift in Sources */,
 				FC2E279F7BC0418AAB4A8B95 /* CoreMLSignClassifier.swift in Sources */,
+				A1BIGRAM00000000000002 /* GlossBigramPrior.swift in Sources */,
 				D32E2017132841969CAB6A6F /* LandmarkRecorder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

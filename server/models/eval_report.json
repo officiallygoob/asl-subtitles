@@ -1,56 +1,24 @@
 {
-  "val_top1": 0.2725430727005005,
-  "val_top5": 0.5572441816329956,
-  "test_top1": 0.24754098057746887,
-  "test_top5": 0.5557377338409424,
-  "n_classes": 234,
-  "n_train": 18248,
-  "n_train_raw": 5840,
-  "n_val": 987,
-  "n_test": 1220,
+  "val_top1": 0.33236435055732727,
+  "val_top5": 0.5978682041168213,
+  "test_top1": 0.309325248003006,
+  "test_top5": 0.5670962929725647,
+  "n_classes": 240,
+  "n_train": 23189,
+  "n_train_raw": 6001,
+  "n_val": 1032,
+  "n_test": 1319,
   "top_confusions": [
     [
-      "DARK->THINK",
+      "FOOD->SPELL",
       6
     ],
     [
-      "BASKETBALL->WEATHER",
-      5
+      "EAT->YESTERDAY",
+      6
     ],
     [
-      "WHY->YESTERDAY",
-      5
-    ],
-    [
-      "FOOD->MONEY",
-      5
-    ],
-    [
-      "FOOD->THINK",
-      5
-    ],
-    [
-      "FOOD->SPELL",
-      5
-    ],
-    [
-      "STOP->BATHROOM",
-      5
-    ],
-    [
-      "STOP->MONTH",
-      5
-    ],
-    [
-      "CANDY->YESTERDAY",
-      5
-    ],
-    [
-      "DEAF->YESTERDAY",
-      5
-    ],
-    [
-      "DOG->THREE",
+      "APPLE->YESTERDAY",
       5
     ],
     [
@@ -62,24 +30,56 @@
       4
     ],
     [
-      "ORANGE->BIRD",
+      "JACKET->PROBLEM",
       4
     ],
     [
-      "WRONG->COLOR",
+      "LANGUAGE->PLAY",
+      4
+    ],
+    [
+      "MOTHER->HOME",
+      4
+    ],
+    [
+      "PURPLE->SHORT",
+      4
+    ],
+    [
+      "THANKSGIVING->WOMAN",
+      4
+    ],
+    [
+      "WHO->DOG",
+      4
+    ],
+    [
+      "BASKETBALL->WEATHER",
+      4
+    ],
+    [
+      "BATHROOM->THINK",
+      4
+    ],
+    [
+      "WHY->YESTERDAY",
+      4
+    ],
+    [
+      "WHY->DONT-KNOW",
       4
     ]
   ],
   "trained_on": "aslcitizen100+synth+wlasl100+wlasl300",
   "arch": "tcn-bilstm-nmm",
-  "aug": "heavy mirror/speed/noise/shift/dropout x3",
+  "aug": "heavy mirror/speed/noise/shift/dropout x4",
   "class_balancing": "WeightedRandomSampler + CE class weights",
   "wlasl100_subset": {
-    "val_top1": 0.3165680468082428,
-    "val_top5": 0.5798816680908203,
+    "val_top1": 0.3757396340370178,
+    "val_top5": 0.6094674468040466,
     "n_val": 338,
-    "test_top1": 0.27906978130340576,
-    "test_top5": 0.5736433863639832,
+    "test_top1": 0.341085284948349,
+    "test_top5": 0.6162790656089783,
     "n_test": 258
   },
   "previous": {
@@ -88,56 +88,87 @@
     "n_classes": 234,
     "trained_on": "synth+wlasl100+wlasl300"
   },
-  "delta_vs_previous_wlasl100_test_pp": 6.976978130340575,
+  "delta_vs_previous_wlasl100_test_pp": 13.178528494834898,
   "privacy": "offline public pose train; on-device Core ML inference; preferServer=false",
   "history_tail": [
     {
-      "epoch": 24,
-      "loss": 1.4269105651722516,
-      "val_top1": 0.2593718469142914,
-      "test_top1": 0.2540983557701111
+      "epoch": 36,
+      "loss": 1.3486158695436448,
+      "val_top1": 0.32364341616630554,
+      "test_top1": 0.30326005816459656
     },
     {
-      "epoch": 25,
-      "loss": 1.381587251557012,
-      "val_top1": 0.2725430727005005,
-      "test_top1": 0.24754098057746887
+      "epoch": 37,
+      "loss": 1.4048735504497083,
+      "val_top1": 0.32364341616630554,
+      "test_top1": 0.3047763407230377
     },
     {
-      "epoch": 26,
-      "loss": 1.3779343050438706,
-      "val_top1": 0.26950353384017944,
-      "test_top1": 0.26147541403770447
+      "epoch": 38,
+      "loss": 1.3766605819591273,
+      "val_top1": 0.31686046719551086,
+      "test_top1": 0.301743745803833
     },
     {
-      "epoch": 27,
-      "loss": 1.3610962088408045,
-      "val_top1": 0.2705167233943939,
-      "test_top1": 0.25901639461517334
+      "epoch": 39,
+      "loss": 1.3539418384366606,
+      "val_top1": 0.3255814015865326,
+      "test_top1": 0.2994692921638489
     },
     {
-      "epoch": 28,
-      "loss": 1.3579339786665003,
-      "val_top1": 0.2644376754760742,
-      "test_top1": 0.2565573751926422
+      "epoch": 40,
+      "loss": 1.322951299776425,
+      "val_top1": 0.33236435055732727,
+      "test_top1": 0.309325248003006
     }
   ],
   "window": 32,
   "gloss_map": true,
+  "mixup": 0.2,
+  "distill": true,
+  "bigram_test": {
+    "plain_top1": 0.30932524639878695,
+    "bigram_gold_prev_top1": 0.44124336618650495,
+    "bigram_chain_top1": 0.3290371493555724,
+    "n": 1319,
+    "prior_weight": 0.35,
+    "k": 5
+  },
+  "bigram_wlasl100_test": {
+    "plain_top1": 0.34108527131782945,
+    "bigram_gold_prev_top1": 0.42248062015503873,
+    "bigram_chain_top1": 0.375968992248062,
+    "n": 258,
+    "prior_weight": 0.35,
+    "k": 5
+  },
   "comparable_wlasl100": {
-    "val_top1": 0.3166,
-    "val_top5": 0.5799,
-    "test_top1": 0.2791,
-    "test_top5": 0.5736,
+    "val_top1": 0.3757,
+    "val_top5": 0.6095,
+    "test_top1": 0.3411,
+    "test_top5": 0.6163,
     "n_val": 338,
     "n_test": 258
   },
-  "notes": "Shipping full head=234 (GLOSS_VOCAB\u222aWLASL100). TCN-BiLSTM + heavy aug + ASL Citizen via gloss_map. Dual daily-real head=110 in ASLSignClassifierDaily.mlpackage (39.5% on WLASL100\u2229daily, not comparable to full 100-class). preferServer=false.",
+  "previous_ship": {
+    "val_top1": 0.3166,
+    "test_top1": 0.2791,
+    "test_top5": 0.5736,
+    "n_classes": 234,
+    "commit": "ffc82de"
+  },
+  "delta_vs_ffc82de_wlasl100_test_pp": 6.2,
+  "notes": "Shipping full head=240 (GLOSS_VOCAB\u222aWLASL100 + ABOUT/AND/BOY/MOVIE/PARTY/CHRISTMAS). TCN-BiLSTM + mixup + teacher-distill + expanded gloss_map + Citizen first-class glosses. Dual daily CORE30 head in ASLSignClassifierDaily.mlpackage (36.8% own test / 76% top-5; not comparable to full holdout). On-device bigram top-5 rerank wired (chain ~+3pp). preferServer=false. Still not conversational.",
   "dual_daily": {
-    "n_classes": 110,
+    "n_classes": 30,
     "path": "ASLSubtitles/Models/ASLSignClassifierDaily.mlpackage",
-    "overall_test_top1": 0.3012,
-    "wlasl100_overlap_test_top1": 0.3953,
-    "note": "WLASL100\u2229daily is easier closed-set; do not compare directly to full-head 27.9%"
+    "name": "CORE30",
+    "overall_test_top1": 0.3683,
+    "overall_test_top5": 0.7634,
+    "overall_val_top1": 0.4632,
+    "wlasl100_overlap_test_top1": 0.3947,
+    "bigram_gold_prev_test_top1": 0.6024,
+    "bigram_chain_test_top1": 0.3976,
+    "note": "Closed-set 30 high-density glosses; do not compare to full-head 34.1% WLASL100 holdout."
   }
 }

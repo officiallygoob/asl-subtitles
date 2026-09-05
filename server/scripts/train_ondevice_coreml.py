@@ -150,6 +150,15 @@ def main() -> int:
     ap.add_argument("--arch", default="tcn-bilstm", help="poselstm | tcn-bilstm | transformer")
     ap.add_argument("--attn-heads", type=int, default=4)
     ap.add_argument("--report", type=Path, default=None, help="Override eval_report path")
+    ap.add_argument("--mixup", type=float, default=0.0, help="Mixup alpha (0=off); try 0.2")
+    ap.add_argument("--warmup-epochs", type=int, default=3)
+    ap.add_argument("--teacher", type=Path, default=None, help="Teacher .pt for distillation")
+    ap.add_argument("--distill-temp", type=float, default=2.0)
+    ap.add_argument("--distill-alpha", type=float, default=0.6, help="Weight on KL distill vs CE")
+    ap.add_argument("--train-teacher", action="store_true", help="First train larger teacher then distill to student")
+    ap.add_argument("--teacher-hidden", type=int, default=320)
+    ap.add_argument("--teacher-layers", type=int, default=3)
+    ap.add_argument("--bigram-rerank", action="store_true", help="Report bigram top-5 rerank metrics")
     args = ap.parse_args()
 
     if not args.data.exists():
@@ -164,7 +173,7 @@ def main() -> int:
     from torch import nn
     from torch.utils.data import DataLoader, TensorDataset, WeightedRandomSampler
 
-    from pipeline.augment import augment_sequence, augment_sequence_heavy
+    from pipeline.augment import augment_sequence, augment_sequence_heavy, mixup_pair
     from pipeline.normalize import FEATURE_DIM
     from pipeline.sequence_model import build_sequence_model
 
@@ -242,15 +251,102 @@ def main() -> int:
         dropout=0.3,
         attn_heads=args.attn_heads,
     )
+    if args.train_teacher and not (args.teacher and Path(args.teacher).exists()):
+        # Train a larger teacher in-process, save, then distill into student below.
+        print(f"=== training teacher hidden={args.teacher_hidden} layers={args.teacher_layers} ===")
+        teacher_path = args.out.with_name(args.out.stem + "_teacher.pt")
+        t_kwargs = dict(model_kwargs)
+        t_kwargs["hidden_dim"] = args.teacher_hidden
+        t_kwargs["num_layers"] = args.teacher_layers
+        teacher_model = build_sequence_model(args.arch, **t_kwargs).to(device)
+        t_opt = torch.optim.AdamW(teacher_model.parameters(), lr=args.lr, weight_decay=2e-4)
+        t_ce = nn.CrossEntropyLoss(weight=torch.as_tensor(class_w, dtype=torch.float32), label_smoothing=args.label_smoothing)
+        t_bce = nn.BCEWithLogitsLoss()
+        t_loader = DataLoader(
+            TensorDataset(torch.from_numpy(Xtr), torch.from_numpy(ytr), torch.from_numpy(atr)),
+            batch_size=args.batch,
+            sampler=WeightedRandomSampler(
+                weights=torch.as_tensor(sample_w, dtype=torch.double),
+                num_samples=len(sample_w),
+                replacement=True,
+            ),
+        )
+        t_best, t_state = -1.0, None
+        t_epochs = max(12, args.epochs // 2)
+        for epoch in range(1, t_epochs + 1):
+            teacher_model.train()
+            for xb, yb, ab in t_loader:
+                t_opt.zero_grad()
+                logits, aux_logits = teacher_model(xb, return_aux=True)
+                loss = t_ce(logits, yb) + args.aux_weight * t_bce(aux_logits, ab)
+                loss.backward()
+                nn.utils.clip_grad_norm_(teacher_model.parameters(), 2.0)
+                t_opt.step()
+            teacher_model.eval()
+            with torch.no_grad():
+                if w100_val.any():
+                    w_logits = forward_logits(teacher_model, Xn[w100_val])
+                    score = float((w_logits.argmax(-1) == torch.from_numpy(y[w100_val])).float().mean())
+                else:
+                    va_logits = forward_logits(teacher_model, Xva)
+                    score = float((va_logits.argmax(-1) == torch.from_numpy(yva)).float().mean())
+            print(f"  teacher epoch {epoch:02d} score={score:.3f}")
+            if score >= t_best:
+                t_best = score
+                t_state = {k: v.detach().cpu().clone() for k, v in teacher_model.state_dict().items()}
+        assert t_state is not None
+        torch.save({
+            "state_dict": t_state,
+            "hidden_dim": args.teacher_hidden,
+            "num_layers": args.teacher_layers,
+            "arch": args.arch,
+            "num_classes": len(labels),
+            "labels": labels,
+        }, teacher_path)
+        args.teacher = teacher_path
+        print(f"teacher saved → {teacher_path} best={t_best:.3f}")
+
     model = build_sequence_model(args.arch, **model_kwargs).to(device)
     n_params = sum(p.numel() for p in model.parameters())
     print(f"model params={n_params:,} hidden={args.hidden} layers={args.layers} arch={args.arch}")
 
+    # Optional teacher for distillation
+    teacher = None
+    if args.teacher and args.teacher.exists():
+        tckpt = torch.load(args.teacher, map_location="cpu", weights_only=False)
+        t_hidden = int(tckpt.get("hidden_dim", args.teacher_hidden))
+        t_layers = int(tckpt.get("num_layers", args.teacher_layers))
+        t_arch = tckpt.get("arch", args.arch)
+        teacher = build_sequence_model(
+            t_arch,
+            input_dim=FEATURE_DIM,
+            hidden_dim=t_hidden,
+            num_layers=t_layers,
+            num_classes=len(labels),
+            bidirectional=True,
+            dropout=0.0,
+            attn_heads=args.attn_heads,
+        )
+        teacher.load_state_dict(tckpt["state_dict"])
+        teacher.eval()
+        for p_ in teacher.parameters():
+            p_.requires_grad_(False)
+        print(f"distill teacher loaded from {args.teacher} hidden={t_hidden} layers={t_layers}")
+
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=2e-4)
-    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs, eta_min=args.lr * 0.05)
+
+    def lr_at(epoch: int) -> float:
+        if args.warmup_epochs > 0 and epoch <= args.warmup_epochs:
+            return args.lr * epoch / max(args.warmup_epochs, 1)
+        # cosine after warmup
+        progress = (epoch - args.warmup_epochs) / max(args.epochs - args.warmup_epochs, 1)
+        import math as _math
+        return args.lr * 0.05 + 0.5 * (args.lr - args.lr * 0.05) * (1.0 + _math.cos(_math.pi * progress))
+
     ce_w = torch.as_tensor(class_w, dtype=torch.float32)
     crit = nn.CrossEntropyLoss(weight=ce_w, label_smoothing=args.label_smoothing)
     bce = nn.BCEWithLogitsLoss()
+    kl = nn.KLDivLoss(reduction="batchmean")
     train_loader = DataLoader(
         TensorDataset(torch.from_numpy(Xtr), torch.from_numpy(ytr), torch.from_numpy(atr)),
         batch_size=args.batch,
@@ -264,19 +360,42 @@ def main() -> int:
     best_state = None
     history = []
     for epoch in range(1, args.epochs + 1):
+        # warmup + cosine LR
+        lr_now = lr_at(epoch)
+        for pg in opt.param_groups:
+            pg["lr"] = lr_now
         model.train()
         total_loss = 0.0
         n = 0
         for xb, yb, ab in train_loader:
             opt.zero_grad()
-            logits, aux_logits = model(xb, return_aux=True)
-            loss = crit(logits, yb) + args.aux_weight * bce(aux_logits, ab)
+            # Online mixup on pose sequences
+            if args.mixup and args.mixup > 0:
+                perm = torch.randperm(xb.size(0))
+                xb2, yb2, ab2 = xb[perm], yb[perm], ab[perm]
+                lam = float(torch.distributions.Beta(args.mixup, args.mixup).sample())
+                lam = max(lam, 1.0 - lam)  # prefer dominant label
+                xb = lam * xb + (1.0 - lam) * xb2
+                ab = lam * ab + (1.0 - lam) * ab2
+                logits, aux_logits = model(xb, return_aux=True)
+                loss_ce = lam * crit(logits, yb) + (1.0 - lam) * crit(logits, yb2)
+            else:
+                logits, aux_logits = model(xb, return_aux=True)
+                loss_ce = crit(logits, yb)
+            loss = loss_ce + args.aux_weight * bce(aux_logits, ab)
+            if teacher is not None:
+                with torch.no_grad():
+                    t_logits = teacher(xb)
+                T = args.distill_temp
+                log_p = torch.log_softmax(logits / T, dim=-1)
+                q = torch.softmax(t_logits / T, dim=-1)
+                loss_kd = kl(log_p, q) * (T * T)
+                loss = args.distill_alpha * loss_kd + (1.0 - args.distill_alpha) * loss
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 2.0)
             opt.step()
             total_loss += float(loss) * len(xb)
             n += len(xb)
-        sched.step()
         model.eval()
         va_logits = forward_logits(model, Xva)
         te_logits = forward_logits(model, Xte)
@@ -415,7 +534,21 @@ def main() -> int:
         "history_tail": history[-5:],
         "window": window,
         "gloss_map": True,
+        "mixup": args.mixup,
+        "distill": bool(teacher is not None),
     }
+    if args.bigram_rerank or True:
+        from pipeline.bigram_prior import build_bigram_counts, eval_with_bigram, save_prior
+        prior = build_bigram_counts(labels)
+        save_prior(args.out.parent / "gloss_bigram_prior.json", labels)
+        te_logits_np = forward_logits(model, Xte).numpy()
+        report["bigram_test"] = eval_with_bigram(te_logits_np, yte, labels, prior)
+        if w100_test.any():
+            w_logits_np = forward_logits(model, Xn[w100_test]).numpy()
+            report["bigram_wlasl100_test"] = eval_with_bigram(w_logits_np, y[w100_test], labels, prior)
+        print(f"bigram_test: {report.get('bigram_test')}")
+        if "bigram_wlasl100_test" in report:
+            print(f"bigram_wlasl100_test: {report['bigram_wlasl100_test']}")
     report_path = args.report or (args.out.parent / "eval_report.json")
     report_path.write_text(json.dumps(report, indent=2))
 

@@ -173,6 +173,12 @@
     "SUNDAY",
     "ENGLISH",
     "ASL",
+    "ABOUT",
+    "AND",
+    "BOY",
+    "MOVIE",
+    "PARTY",
+    "CHRISTMAS",
     "ACCIDENT",
     "AFRICA",
     "ALL",
@@ -241,16 +247,6 @@
     32,
     170
   ],
-  "arch": "tcn-bilstm",
-  "n_classes": 234,
-  "val_acc": 0.2725430727005005,
-  "test_acc": 0.24754098057746887,
-  "wlasl100_subset": {
-    "val_top1": 0.3165680468082428,
-    "val_top5": 0.5798816680908203,
-    "n_val": 338,
-    "test_top1": 0.27906978130340576,
-    "test_top5": 0.5736433863639832,
-    "n_test": 258
-  }
+  "arch": "tcn-bilstm-nmm",
+  "n_classes": 240
 }

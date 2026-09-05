@@ -52,6 +52,9 @@ final class SignRecognizer {
         let raw: RecognitionResult
         if featureWindow.count >= 12, let ml = coreML.classify(window: featureWindow) {
             raw = ml
+            if ml.confidence >= 0.55 {
+                coreML.previousGloss = (ml.gloss.isEmpty ? ml.label : ml.gloss).uppercased()
+            }
         } else {
             raw = recognizeHands(hands)
         }
