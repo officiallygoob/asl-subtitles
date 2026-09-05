@@ -1,11 +1,12 @@
 import SwiftUI
 import Vision
 
-/// Debug overlay for hands + body + face landmarks.
+/// Debug overlay for hands + body + face landmarks, plus optional NMM badges.
 struct HolisticLandmarkOverlay: View {
     let hands: [HandPoseSnapshot]
     let bodyJoints: [LandmarkFrame.SerializedJoint]
     let face: [LandmarkFrame.SerializedJoint]
+    var nmm: NMMState? = nil
 
     private let handBones: [(VNHumanHandPoseObservation.JointName, VNHumanHandPoseObservation.JointName)] = [
         (.wrist, .thumbCMC), (.thumbCMC, .thumbMP), (.thumbMP, .thumbIP), (.thumbIP, .thumbTip),
@@ -29,15 +30,35 @@ struct HolisticLandmarkOverlay: View {
 
     var body: some View {
         GeometryReader { geo in
-            Canvas { context, size in
-                drawHands(context: context, size: size)
-                drawBodyJoints(context: context, size: size)
-                drawFace(context: context, size: size)
+            ZStack(alignment: .topLeading) {
+                Canvas { context, size in
+                    drawHands(context: context, size: size)
+                    drawBodyJoints(context: context, size: size)
+                    drawFace(context: context, size: size)
+                }
+                .frame(width: geo.size.width, height: geo.size.height)
+
+                if let nmm, !nmm.activeBadges.isEmpty {
+                    nmmBadgeRow(nmm)
+                        .padding(12)
+                }
             }
-            .frame(width: geo.size.width, height: geo.size.height)
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+
+    private func nmmBadgeRow(_ nmm: NMMState) -> some View {
+        HStack(spacing: 6) {
+            ForEach(nmm.activeBadges, id: \.self) { badge in
+                Text(badge)
+                    .font(.caption2.weight(.bold).monospaced())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(AppTheme.accent.opacity(0.55), in: Capsule())
+            }
+        }
     }
 
     private func drawHands(context: GraphicsContext, size: CGSize) {

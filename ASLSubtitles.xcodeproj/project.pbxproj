@@ -38,6 +38,25 @@
 		3B348EFDA152477CB68D28DA /* VocabularyCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC6BC9C06FBF4C4F98B3DC24 /* VocabularyCatalog.swift */; };
 		63025FE3DCFC4FC4925A25EF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FDF36B6DEB304F0A9A1B7BBA /* Assets.xcassets */; };
 		A32631E270774DABBEBD446A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 44572EE0220B4E198324592E /* Preview Assets.xcassets */; };
+		A1NMM00000000000000001 /* NonManualMarkers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1NMM00000000000000002 /* NonManualMarkers.swift */; };
+		A1NMM00000000000000004 /* GlossEnglish.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1NMM00000000000000005 /* GlossEnglish.swift */; };
+		A1NMM00000000000000007 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1NMM00000000000000008 /* AppTheme.swift */; };
+		A1NMM0000000000000000A /* ASLAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1NMM0000000000000000B /* ASLAppIntents.swift */; };
+		A1NMM0000000000000000C /* AppleIntelligenceText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1NMM0000000000000000D /* AppleIntelligenceText.swift */; };
+		A1NMM0000000000000000E /* ConversationEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1NMM0000000000000000F /* ConversationEntity.swift */; };
+		A1NMM00000000000000010 /* SuggestedReplies.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1NMM00000000000000011 /* SuggestedReplies.swift */; };
+		A1NMM00000000000000012 /* ConversationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1NMM00000000000000013 /* ConversationStore.swift */; };
+		A1NMM00000000000000014 /* HistorySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1NMM00000000000000015 /* HistorySheet.swift */; };
+		A1CALL0000000000000001 /* CallModeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1CALL0000000000000002 /* CallModeController.swift */; };
+		A1CALL0000000000000003 /* ASLSharePlayActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1CALL0000000000000004 /* ASLSharePlayActivity.swift */; };
+		A1CALL0000000000000005 /* BroadcastPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1CALL0000000000000006 /* BroadcastPickerView.swift */; };
+		A1CALL0000000000000007 /* CallModePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1CALL0000000000000008 /* CallModePanel.swift */; };
+		A1INAPP000000000000001 /* InAppCallController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1INAPP000000000000002 /* InAppCallController.swift */; };
+		A1INAPP000000000000003 /* CallTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1INAPP000000000000004 /* CallTabView.swift */; };
+		A1LEARN000000000000001 /* LearnProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1LEARN000000000000002 /* LearnProgressStore.swift */; };
+		A1LEARN000000000000003 /* LearnDeck.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1LEARN000000000000004 /* LearnDeck.swift */; };
+		A1LEARN000000000000005 /* LearnSessionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1LEARN000000000000006 /* LearnSessionController.swift */; };
+		A1LEARN000000000000007 /* LearnTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1LEARN000000000000008 /* LearnTabView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -74,6 +93,10 @@
 		44572EE0220B4E198324592E /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		A10000000000000000000006 /* ASLSubtitles.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ASLSubtitles.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B742EF12C9D24FB2B7253E83 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A1CALL0000000000000002 /* CallModeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallModeController.swift; sourceTree = "<group>"; };
+		A1CALL0000000000000004 /* ASLSharePlayActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASLSharePlayActivity.swift; sourceTree = "<group>"; };
+		A1CALL0000000000000006 /* BroadcastPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BroadcastPickerView.swift; sourceTree = "<group>"; };
+		A1CALL0000000000000008 /* CallModePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallModePanel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -117,6 +140,10 @@
 				DD2F95A40C534A2CB76D35BC /* Speech */,
 				03C87C3055824AF6AA505E04 /* Conversation */,
 				A1000000000000000000000E /* Utilities */,
+				A1000000000000000000001A /* Intents */,
+				A1000000000000000000001B /* CallMode */,
+				A1000000000000000000001C /* Call */,
+				A1000000000000000000001D /* Learn */,
 				FDF36B6DEB304F0A9A1B7BBA /* Assets.xcassets */,
 				B742EF12C9D24FB2B7253E83 /* Info.plist */,
 				A1000000000000000000000F /* Preview Content */,
@@ -140,6 +167,7 @@
 				9B7332CA59C143D2823F0B63 /* HandPoseDetector.swift */,
 				028D0036BC8544B58F39196C /* LandmarkFrame.swift */,
 				7CB71B536FC94AFA8386C3FA /* HolisticPoseDetector.swift */,
+				A1NMM00000000000000002 /* NonManualMarkers.swift */,
 			);
 			path = Vision;
 			sourceTree = "<group>";
@@ -152,6 +180,7 @@
 				14148E470C2E4FAC942D6D2C /* FingerspellingClassifier.swift */,
 				2F94C335D8E44D04B4F644F2 /* EverydaySignHeuristics.swift */,
 				66FC30B319344B5FAD63ED85 /* SignRecognizer.swift */,
+				A1NMM00000000000000005 /* GlossEnglish.swift */,
 				D85A001E337D4068921ABBCD /* CoreMLSignClassifier.swift */,
 				7744D425A5334F6F8E7E8946 /* LandmarkRecorder.swift */,
 			);
@@ -161,6 +190,8 @@
 		A1000000000000000000000D /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				A1NMM00000000000000008 /* AppTheme.swift */,
+				A1NMM00000000000000015 /* HistorySheet.swift */,
 				C1640A58721F4D41BC5876BC /* SubtitleOverlay.swift */,
 				559372032F774881937D7422 /* PermissionView.swift */,
 				9FF1530B2B314DC38313CF88 /* ControlsBar.swift */,
@@ -211,8 +242,53 @@
 			isa = PBXGroup;
 			children = (
 				5E982AFB9F2440C680A6F743 /* ConversationModels.swift */,
+				A1NMM00000000000000013 /* ConversationStore.swift */,
 			);
 			path = Conversation;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000001A /* Intents */ = {
+			isa = PBXGroup;
+			children = (
+				A1NMM0000000000000000B /* ASLAppIntents.swift */,
+				A1NMM0000000000000000D /* AppleIntelligenceText.swift */,
+				A1NMM0000000000000000F /* ConversationEntity.swift */,
+				A1NMM0000000000000000D /* AppleIntelligenceText.swift */,
+				A1NMM0000000000000000F /* ConversationEntity.swift */,
+				A1NMM00000000000000011 /* SuggestedReplies.swift */,
+			);
+			path = Intents;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000001B /* CallMode */ = {
+			isa = PBXGroup;
+			children = (
+				A1CALL0000000000000002 /* CallModeController.swift */,
+				A1CALL0000000000000004 /* ASLSharePlayActivity.swift */,
+				A1CALL0000000000000006 /* BroadcastPickerView.swift */,
+				A1CALL0000000000000008 /* CallModePanel.swift */,
+			);
+			path = CallMode;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000001C /* Call */ = {
+			isa = PBXGroup;
+			children = (
+				A1INAPP000000000000002 /* InAppCallController.swift */,
+				A1INAPP000000000000004 /* CallTabView.swift */,
+			);
+			path = Call;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000001D /* Learn */ = {
+			isa = PBXGroup;
+			children = (
+				A1LEARN000000000000002 /* LearnProgressStore.swift */,
+				A1LEARN000000000000004 /* LearnDeck.swift */,
+				A1LEARN000000000000006 /* LearnSessionController.swift */,
+				A1LEARN000000000000008 /* LearnTabView.swift */,
+			);
+			path = Learn;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -305,6 +381,29 @@
 				B3402DA72254452E9C961860 /* SettingsSheet.swift in Sources */,
 				1B4F5D33CCBA44D6A895F8C3 /* TemporalSmoother.swift in Sources */,
 				3B348EFDA152477CB68D28DA /* VocabularyCatalog.swift in Sources */,
+				A1CALL0000000000000001 /* CallModeController.swift in Sources */,
+				A1CALL0000000000000003 /* ASLSharePlayActivity.swift in Sources */,
+				A1CALL0000000000000005 /* BroadcastPickerView.swift in Sources */,
+				A1CALL0000000000000007 /* CallModePanel.swift in Sources */,
+				A1CALL0000000000000001 /* CallModeController.swift in Sources */,
+				A1CALL0000000000000003 /* ASLSharePlayActivity.swift in Sources */,
+				A1CALL0000000000000005 /* BroadcastPickerView.swift in Sources */,
+				A1CALL0000000000000007 /* CallModePanel.swift in Sources */,
+				A1INAPP000000000000001 /* InAppCallController.swift in Sources */,
+				A1INAPP000000000000003 /* CallTabView.swift in Sources */,
+				A1LEARN000000000000001 /* LearnProgressStore.swift in Sources */,
+				A1LEARN000000000000003 /* LearnDeck.swift in Sources */,
+				A1LEARN000000000000005 /* LearnSessionController.swift in Sources */,
+				A1LEARN000000000000007 /* LearnTabView.swift in Sources */,
+				A1NMM0000000000000000A /* ASLAppIntents.swift in Sources */,
+				A1NMM0000000000000000E /* ConversationEntity.swift in Sources */,
+				A1NMM0000000000000000C /* AppleIntelligenceText.swift in Sources */,
+				A1NMM00000000000000010 /* SuggestedReplies.swift in Sources */,
+				A1NMM00000000000000012 /* ConversationStore.swift in Sources */,
+				A1NMM00000000000000014 /* HistorySheet.swift in Sources */,
+				A1NMM00000000000000001 /* NonManualMarkers.swift in Sources */,
+				A1NMM00000000000000004 /* GlossEnglish.swift in Sources */,
+				A1NMM00000000000000007 /* AppTheme.swift in Sources */,
 				AFAA752C4D354159BB0E05D4 /* LandmarkFrame.swift in Sources */,
 				C8C451F43EED4639B4121DE9 /* HolisticPoseDetector.swift in Sources */,
 				36A3CC721BC34AB08C62436F /* RecognitionClient.swift in Sources */,
@@ -372,7 +471,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -429,7 +528,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;

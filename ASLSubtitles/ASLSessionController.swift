@@ -1,6 +1,7 @@
 import AVFoundation
 import Combine
 import SwiftUI
+import UIKit
 import Vision
 
 /// Orchestrator: camera → holistic landmarks → stream / offline → conversation UI + speech.
@@ -16,6 +17,14 @@ final class ASLSessionController: NSObject, ObservableObject {
     @Published var latestHands: [HandPoseSnapshot] = []
     @Published var latestBodyJoints: [LandmarkFrame.SerializedJoint] = []
     @Published var latestFaceJoints: [LandmarkFrame.SerializedJoint] = []
+    @Published var latestNMM: NMMState = .zero
+    @Published var showNMMBadges: Bool = true
+    @Published var suggestedReplies: [String] = []
+    @Published var conversationSummary: String = ""
+    @Published var isSummarizing: Bool = false
+    @Published var showHistorySheet: Bool = false
+    /// Stable id for the in-progress conversation (persisted on-device).
+    @Published private(set) var conversationID: UUID = UUID()
     @Published var lastErrorMessage: String?
     @Published var history: [ConversationTurn] = []
     /// Accumulating English transcript for the signing side (persists across empty gaps).
@@ -31,11 +40,16 @@ final class ASLSessionController: NSObject, ObservableObject {
     let recognition = RecognitionClient()
     let speech = SpeechTranscriptController()
     let recorder = LandmarkRecorder()
+    let callMode = CallModeController()
+    let sharePlay = SharePlayCoordinator()
+    /// Optional frame sink for Learn tab (nil when not learning).
+    var learnConsumer: ((LandmarkFrame) -> Void)?
 
     private let visionQueue = DispatchQueue(label: "com.aslsubtitles.vision", qos: .userInitiated)
     private let detector = HolisticPoseDetector()
     private let frameBuffer = LandmarkFrameBuffer(capacity: 36)
     private let segmenter = UtteranceSegmenter()
+    private let nmmAnalyzer = NonManualMarkersAnalyzer()
 
     private var frameCounter = 0
     private let processEveryNFrames = 2
@@ -62,6 +76,7 @@ final class ASLSessionController: NSObject, ObservableObject {
     }
 
     func prepare() {
+        ASLAppBridge.bind(self)
         permissionStatus = AVCaptureDevice.authorizationStatus(for: .video)
         camera.$permissionStatus
             .receive(on: DispatchQueue.main)
@@ -111,10 +126,11 @@ final class ASLSessionController: NSObject, ObservableObject {
     }
 
     func start() {
-        visionQueue.async { [detector, frameBuffer, segmenter] in
+        visionQueue.async { [detector, frameBuffer, segmenter, nmmAnalyzer] in
             detector.reset()
             frameBuffer.reset()
             segmenter.reset()
+            nmmAnalyzer.reset()
         }
         recognition.resetOffline()
         utteranceFrames.removeAll()
@@ -176,13 +192,27 @@ final class ASLSessionController: NSObject, ObservableObject {
         smoothedSubtitle = ""
         subtitleConfidence = 0
         isWatchingEmpty = true
+        suggestedReplies = []
+        conversationSummary = ""
+        conversationID = UUID()
     }
 
     private func appendSigningFinal(text: String, gloss: [String], confidence: Double) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        // Append to persistent transcript (space-separated; avoid duplicating exact last token).
+        Task { @MainActor in
+            let polished = await AppleIntelligenceText.polishEnglish(trimmed)
+            self.commitSigningFinal(text: polished, gloss: gloss, confidence: confidence)
+            self.sharePlay.broadcastCaption(polished)
+            self.refreshSuggestedReplies(after: polished)
+        }
+    }
+
+    private func commitSigningFinal(text: String, gloss: [String], confidence: Double) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
         let lastToken = persistentSigningTranscript
             .split(separator: " ")
             .last
@@ -195,21 +225,95 @@ final class ASLSessionController: NSObject, ObservableObject {
             }
         }
 
-        // History bubble: skip exact duplicate consecutive signing turn.
         if let last = history.last, last.role == .signing, last.text == trimmed {
             currentSigningWord = trimmed
             liveSigningText = trimmed
+            persistConversation()
             return
         }
         history.append(ConversationTurn(role: .signing, text: trimmed, gloss: gloss, confidence: confidence))
         currentSigningWord = trimmed
         liveSigningText = trimmed
+        persistConversation()
+    }
+
+    func refreshSuggestedReplies(after english: String) {
+        Task { @MainActor in
+            let hist = self.history.suffix(8).map { (role: $0.role.rawValue, text: $0.text) }
+            let suggestions = await SuggestedReplies.suggest(afterSigning: english, history: Array(hist))
+            self.suggestedReplies = suggestions
+        }
+    }
+
+    func applySuggestedReply(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        history.append(ConversationTurn(role: .speaking, text: trimmed))
+        suggestedReplies = []
+        persistConversation()
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    func requestConversationSummary() {
+        guard !history.isEmpty || !persistentSigningTranscript.isEmpty else {
+            conversationSummary = ""
+            return
+        }
+        isSummarizing = true
+        Task { @MainActor in
+            let turns = self.history.map { (role: $0.role == .signing ? "Signing" : "You said", text: $0.text) }
+            let summary = await AppleIntelligenceText.summarizeConversation(turns)
+            self.conversationSummary = summary
+            self.isSummarizing = false
+        }
+    }
+
+    /// Sync placeholder for Siri while async summary runs.
+    func summarizeConversationSyncPlaceholder() -> String {
+        if !conversationSummary.isEmpty { return conversationSummary }
+        if !persistentSigningTranscript.isEmpty { return persistentSigningTranscript }
+        return history.suffix(4).map(\.text).joined(separator: " · ")
+    }
+
+    func persistConversation() {
+        ConversationStore.shared.upsertLive(
+            id: conversationID,
+            turns: history,
+            signingTranscript: persistentSigningTranscript
+        )
+    }
+
+    func openPersistedConversation(id: UUID) {
+        guard let record = ConversationStore.shared.conversations.first(where: { $0.id == id }) else { return }
+        conversationID = record.id
+        persistentSigningTranscript = record.signingTranscript
+        history = record.turns.map { t in
+            ConversationTurn(
+                role: t.role == "Signing" ? .signing : (t.role == "You said" ? .speaking : .system),
+                text: t.text,
+                gloss: t.gloss,
+                confidence: t.confidence,
+                timestamp: t.createdAt
+            )
+        }
+        currentSigningWord = ""
+        liveSigningText = ""
+        conversationSummary = ""
+        suggestedReplies = []
+        showHistorySheet = false
+    }
+
+    func startNewConversation() {
+        persistConversation()
+        conversationID = UUID()
+        clearHistory()
     }
 
     private func appendSpeakingFinal(text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         history.append(ConversationTurn(role: .speaking, text: trimmed))
+        persistConversation()
     }
 
     private func handsFromFrame(_ frame: LandmarkFrame) -> [HandPoseSnapshot] {
@@ -231,10 +335,44 @@ final class ASLSessionController: NSObject, ObservableObject {
         }
     }
 
-    nonisolated fileprivate func processFrame(_ sampleBuffer: CMSampleBuffer, isFront: Bool) {
-        visionQueue.async { [weak self, detector, frameBuffer, segmenter] in
+    func startCallModeFromIntent() {
+        prepare()
+        if permissionStatus == .authorized { start() }
+        beginCallMode()
+    }
+
+    func beginCallMode() {
+        callMode.onSampleBuffer = { [weak self] buffer in
             guard let self else { return }
-            let frame = detector.detect(in: sampleBuffer, isFrontCamera: isFront)
+            // Treat captured FaceTime frames like camera frames (front=false for external content).
+            self.processFrame(buffer, isFront: false)
+        }
+        callMode.startCallMode()
+        sharePlay.observeSessions()
+        // Poll broadcast extension captions / heartbeat
+        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            Task { @MainActor in
+                guard let self else { timer.invalidate(); return }
+                guard self.callMode.isCallModeActive else { timer.invalidate(); return }
+                if let caption = self.callMode.pollBroadcastCaptions(), !caption.isEmpty {
+                    // Heartbeat only — real captions come from Vision on SCK frames.
+                    _ = caption
+                }
+            }
+        }
+    }
+
+    func endCallMode() {
+        callMode.stopCallMode()
+    }
+
+    nonisolated fileprivate func processFrame(_ sampleBuffer: CMSampleBuffer, isFront: Bool) {
+        visionQueue.async { [weak self, detector, frameBuffer, segmenter, nmmAnalyzer] in
+            guard let self else { return }
+            var frame = detector.detect(in: sampleBuffer, isFrontCamera: isFront)
+            let nmm = nmmAnalyzer.push(frame, window: frameBuffer.window(n: 12))
+            frame.nmm = nmm.channelValues
+            frame.featureLayoutVersion = LandmarkFrame.featureLayoutVersion
             frameBuffer.append(frame)
             let event = segmenter.push(activity: frame.activity, at: frame.timestamp)
             let windowCopy = frameBuffer.window()
@@ -245,8 +383,10 @@ final class ASLSessionController: NSObject, ObservableObject {
                 self.latestHands = hands
                 self.latestBodyJoints = frame.body
                 self.latestFaceJoints = frame.face
-                self.recognition.sendFrame(frame)
+                self.latestNMM = nmm
+                self.recognition.sendFrame(frame, nmm: nmm)
                 self.recorder.append(frame)
+                self.learnConsumer?(frame)
 
                 switch event {
                 case .utteranceBegan:

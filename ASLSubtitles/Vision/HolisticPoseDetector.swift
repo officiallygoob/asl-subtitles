@@ -149,57 +149,93 @@ final class HolisticPoseDetector {
         guard let observation, let landmarks = observation.landmarks else { return [] }
         var joints: [LandmarkFrame.SerializedJoint] = []
         let box = observation.boundingBox
+        let conf = observation.confidence
 
-        func add(_ name: String, region: VNFaceLandmarkRegion2D?) {
-            guard let region, let first = region.normalizedPoints.first else { return }
-            // Face landmarks are relative to the face bounding box.
-            let x = Double(box.origin.x + first.x * box.size.width)
-            let y = Double(box.origin.y + first.y * box.size.height)
-            joints.append(.init(name: name, x: x, y: y, confidence: observation.confidence))
+        func toImage(_ p: CGPoint) -> (Double, Double) {
+            (
+                Double(box.origin.x + p.x * box.size.width),
+                Double(box.origin.y + p.y * box.size.height)
+            )
         }
 
-        add("leftEye", region: landmarks.leftEye)
-        add("rightEye", region: landmarks.rightEye)
-        add("nose", region: landmarks.noseCrest ?? landmarks.nose)
-        add("mouthLeft", region: landmarks.innerLips)
-        if let outer = landmarks.outerLips, outer.pointCount > 0 {
-            let pts = outer.normalizedPoints
-            let left = pts.min(by: { $0.x < $1.x })
-            let right = pts.max(by: { $0.x < $1.x })
-            if let left {
-                joints.append(.init(
-                    name: "mouthLeft",
-                    x: Double(box.origin.x + left.x * box.size.width),
-                    y: Double(box.origin.y + left.y * box.size.height),
-                    confidence: observation.confidence
-                ))
-            }
-            if let right {
-                joints.append(.init(
-                    name: "mouthRight",
-                    x: Double(box.origin.x + right.x * box.size.width),
-                    y: Double(box.origin.y + right.y * box.size.height),
-                    confidence: observation.confidence
-                ))
-            }
+        func addPoint(_ name: String, _ p: CGPoint) {
+            let (x, y) = toImage(p)
+            joints.append(.init(name: name, x: x, y: y, confidence: conf))
+        }
+
+        func addFirst(_ name: String, region: VNFaceLandmarkRegion2D?) {
+            guard let region, let first = region.normalizedPoints.first else { return }
+            addPoint(name, first)
+        }
+
+        func regionPts(_ region: VNFaceLandmarkRegion2D?) -> [CGPoint] {
+            guard let region, region.pointCount > 0 else { return [] }
+            return region.normalizedPoints
+        }
+
+        // Eyes — centroid + vertical extremes for openness.
+        if let pts = Optional(regionPts(landmarks.leftEye)), !pts.isEmpty {
             let mid = pts.reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.x, y: $0.y + $1.y) }
             let n = CGFloat(pts.count)
-            joints.append(.init(
-                name: "mouthCenter",
-                x: Double(box.origin.x + (mid.x / n) * box.size.width),
-                y: Double(box.origin.y + (mid.y / n) * box.size.height),
-                confidence: observation.confidence
-            ))
+            addPoint("leftEye", CGPoint(x: mid.x / n, y: mid.y / n))
+            if let top = pts.max(by: { $0.y < $1.y }) { addPoint("leftEyeTop", top) }
+            if let bot = pts.min(by: { $0.y < $1.y }) { addPoint("leftEyeBottom", bot) }
         }
-        add("leftEyebrowOuter", region: landmarks.leftEyebrow)
-        add("rightEyebrowOuter", region: landmarks.rightEyebrow)
-        add("chin", region: landmarks.faceContour)
-        // Approximate forehead from median face box top.
+        if let pts = Optional(regionPts(landmarks.rightEye)), !pts.isEmpty {
+            let mid = pts.reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.x, y: $0.y + $1.y) }
+            let n = CGFloat(pts.count)
+            addPoint("rightEye", CGPoint(x: mid.x / n, y: mid.y / n))
+            if let top = pts.max(by: { $0.y < $1.y }) { addPoint("rightEyeTop", top) }
+            if let bot = pts.min(by: { $0.y < $1.y }) { addPoint("rightEyeBottom", bot) }
+        }
+
+        addFirst("nose", region: landmarks.noseCrest ?? landmarks.nose)
+
+        // Eyebrows — outer + inner extremes.
+        if let pts = Optional(regionPts(landmarks.leftEyebrow)), !pts.isEmpty {
+            if let outer = pts.min(by: { $0.x < $1.x }) { addPoint("leftEyebrowOuter", outer) }
+            if let inner = pts.max(by: { $0.x < $1.x }) { addPoint("leftEyebrowInner", inner) }
+        }
+        if let pts = Optional(regionPts(landmarks.rightEyebrow)), !pts.isEmpty {
+            if let outer = pts.max(by: { $0.x < $1.x }) { addPoint("rightEyebrowOuter", outer) }
+            if let inner = pts.min(by: { $0.x < $1.x }) { addPoint("rightEyebrowInner", inner) }
+        }
+
+        // Outer lips — left/right/center + top/bottom for mouth open / smile proxies.
+        let outerPts = regionPts(landmarks.outerLips)
+        if !outerPts.isEmpty {
+            if let left = outerPts.min(by: { $0.x < $1.x }) { addPoint("mouthLeft", left) }
+            if let right = outerPts.max(by: { $0.x < $1.x }) { addPoint("mouthRight", right) }
+            if let top = outerPts.max(by: { $0.y < $1.y }) { addPoint("outerLipTop", top) }
+            if let bot = outerPts.min(by: { $0.y < $1.y }) { addPoint("outerLipBottom", bot) }
+            let mid = outerPts.reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.x, y: $0.y + $1.y) }
+            let n = CGFloat(outerPts.count)
+            addPoint("mouthCenter", CGPoint(x: mid.x / n, y: mid.y / n))
+        }
+
+        let innerPts = regionPts(landmarks.innerLips)
+        if !innerPts.isEmpty {
+            if let top = innerPts.max(by: { $0.y < $1.y }) { addPoint("innerLipTop", top) }
+            if let bot = innerPts.min(by: { $0.y < $1.y }) { addPoint("innerLipBottom", bot) }
+            if joints.first(where: { $0.name == "mouthCenter" }) == nil {
+                let mid = innerPts.reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.x, y: $0.y + $1.y) }
+                let n = CGFloat(innerPts.count)
+                addPoint("mouthCenter", CGPoint(x: mid.x / n, y: mid.y / n))
+            }
+        }
+
+        // Chin from face contour lowest point; forehead from box top.
+        let contour = regionPts(landmarks.faceContour)
+        if let chin = contour.min(by: { $0.y < $1.y }) {
+            addPoint("chin", chin)
+        } else {
+            addFirst("chin", region: landmarks.faceContour)
+        }
         joints.append(.init(
             name: "forehead",
             x: Double(box.midX),
             y: Double(box.maxY),
-            confidence: observation.confidence
+            confidence: conf
         ))
         return joints
     }

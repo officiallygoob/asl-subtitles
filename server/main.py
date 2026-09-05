@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from pipeline.decoder import ContinuousDecoder
 from pipeline.gloss_english import gloss_to_english
+from pipeline.normalize import nmm_summary_from_frames, FEATURE_LAYOUT_VERSION
 from pipeline.segmenter import UtteranceSegmenter
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -25,7 +26,7 @@ app = FastAPI(
         "Continuous sign-to-text over landmark streams. "
         "Video pixels are never accepted — geometry only."
     ),
-    version="2.1.0",
+    version="2.2.0",
 )
 app.add_middleware(
     CORSMiddleware,
@@ -43,6 +44,8 @@ class LandmarkFrameIn(BaseModel):
     body: list[dict[str, Any]] = Field(default_factory=list)
     face: list[dict[str, Any]] = Field(default_factory=list)
     activity: float = 0
+    nmm: list[float] | None = None
+    featureLayoutVersion: int | None = None
     id: str | None = None
 
 
@@ -67,7 +70,8 @@ def health() -> dict[str, Any]:
         "model": decoder.model_name,
         "backend": decoder.backend,
         "vocab_size": len(decoder._label_map),
-        "honesty": "limited-domain continuous; open-domain ASL chat unsolved",
+        "feature_layout_version": FEATURE_LAYOUT_VERSION,
+        "honesty": "limited-domain continuous; NMMs condition English; open-domain ASL chat unsolved",
     }
     if getattr(decoder, "trained_on", None):
         payload["trained_on"] = decoder.trained_on
@@ -80,7 +84,8 @@ def health() -> dict[str, Any]:
 def translate(req: TranslateRequest) -> TranslateResponse:
     frames = [f.model_dump() for f in req.frames]
     result = decoder.decode_window(frames)
-    english = gloss_to_english(result.get("gloss") or [])
+    nmm = nmm_summary_from_frames(frames)
+    english = gloss_to_english(result.get("gloss") or [], nmm=nmm)
     return TranslateResponse(
         gloss=result.get("gloss") or [],
         english=english,
@@ -114,7 +119,8 @@ async def stream(ws: WebSocket) -> None:
 
     async def emit_final(frames: list[dict[str, Any]]) -> None:
         result = decoder.decode_window(frames[-64:] if frames else [])
-        english = gloss_to_english(result.get("gloss") or [])
+        nmm = nmm_summary_from_frames(frames[-64:] if frames else [])
+        english = gloss_to_english(result.get("gloss") or [], nmm=nmm)
         await ws.send_json(
             {
                 "type": "final",
@@ -168,7 +174,8 @@ async def stream(ws: WebSocket) -> None:
                 if len(buffer) >= 12 and len(buffer) % 8 == 0:
                     window_frames = utterance[-32:] if len(utterance) >= 12 else buffer[-32:]
                     result = decoder.decode_window(window_frames)
-                    english = gloss_to_english(result.get("gloss") or [])
+                    nmm = nmm_summary_from_frames(window_frames)
+                    english = gloss_to_english(result.get("gloss") or [], nmm=nmm)
                     await ws.send_json(
                         {
                             "type": "partial",

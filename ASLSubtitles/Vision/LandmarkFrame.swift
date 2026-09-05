@@ -4,7 +4,22 @@ import Vision
 
 /// One temporal frame of holistic landmarks (hands + body + face).
 /// Video pixels are discarded — only geometry is kept / streamed.
+///
+/// ## Feature vector layout (protocol v2 / featureLayoutVersion 2)
+/// | Slice            | Dim | Notes |
+/// |------------------|-----|-------|
+/// | left hand 21×2   | 42  | unchanged |
+/// | right hand 21×2  | 42  | unchanged |
+/// | body 17×2        | 34  | unchanged |
+/// | face 20×2        | 40  | v1 had 10×2; **additive** joints appended |
+/// | activity         | 1   | unchanged |
+/// | NMM channels     | 11  | **additive** brow/eye/mouth/head/torso proxies |
+/// | **FEATURE_DIM**  | **170** | was 139 in v1 |
 struct LandmarkFrame: Codable, Equatable, Identifiable {
+    /// Bump when featureVector dimensionality / layout changes.
+    static let featureLayoutVersion = 2
+    static let featureDim = 21 * 2 * 2 + 17 * 2 + 20 * 2 + 1 + 11
+
     var id: UUID = UUID()
     /// Monotonic capture time (seconds since session start preferred; wall clock OK).
     var timestamp: TimeInterval
@@ -13,6 +28,11 @@ struct LandmarkFrame: Codable, Equatable, Identifiable {
     var face: [SerializedJoint]
     /// Rough activity score 0…1 used for utterance segmentation.
     var activity: Double
+    /// Optional precomputed NMM channel values (0…1); when nil, packed as zeros
+    /// and the analyzer / server derive from face+body.
+    var nmm: [Double]? = nil
+    /// Wire protocol / feature layout version stamped on outbound frames.
+    var featureLayoutVersion: Int = LandmarkFrame.featureLayoutVersion
 
     struct SerializedHand: Codable, Equatable {
         /// "left" | "right" | "unknown"
@@ -29,8 +49,7 @@ struct LandmarkFrame: Codable, Equatable, Identifiable {
         var confidence: Float
     }
 
-    /// Flat feature vector suitable for sequence models (fixed length).
-    /// Layout: left hand 21×2, right hand 21×2, body 17×2, face 10×2, activity.
+    /// Flat feature vector suitable for sequence models (fixed length 170).
     func featureVector() -> [Double] {
         var values: [Double] = []
         values += Self.packHand(named: "left", in: hands)
@@ -38,6 +57,12 @@ struct LandmarkFrame: Codable, Equatable, Identifiable {
         values += Self.packJoints(body, expected: Self.bodyJointOrder)
         values += Self.packJoints(face, expected: Self.faceJointOrder)
         values.append(activity)
+        let nmmVals = nmm ?? Array(repeating: 0, count: Self.nmmChannelOrder.count)
+        if nmmVals.count >= Self.nmmChannelOrder.count {
+            values += Array(nmmVals.prefix(Self.nmmChannelOrder.count))
+        } else {
+            values += nmmVals + Array(repeating: 0, count: Self.nmmChannelOrder.count - nmmVals.count)
+        }
         return values
     }
 
@@ -59,11 +84,47 @@ struct LandmarkFrame: Codable, Equatable, Identifiable {
         "root", "rightEar", "leftEar"
     ]
 
+    /// First 10 match protocol v1; remaining are additive (v2).
     static let faceJointOrder = [
+        // v1
         "leftEye", "rightEye", "nose", "mouthLeft", "mouthRight",
         "leftEyebrowOuter", "rightEyebrowOuter",
-        "chin", "forehead", "mouthCenter"
+        "chin", "forehead", "mouthCenter",
+        // v2 additive — brows / lids / lips for NMM proxies
+        "leftEyebrowInner", "rightEyebrowInner",
+        "leftEyeTop", "leftEyeBottom", "rightEyeTop", "rightEyeBottom",
+        "outerLipTop", "outerLipBottom", "innerLipTop", "innerLipBottom"
     ]
+
+    static let nmmChannelOrder = [
+        "browRaise", "browFurrow", "eyeWiden", "squint",
+        "mouthOpen", "smile", "frown",
+        "headShake", "headNod",
+        "torsoLean", "shoulderTilt"
+    ]
+
+    // MARK: - Body helpers
+
+    /// Signed torso lean in roughly −1…1 (positive = lean toward viewer-right / +x).
+    static func torsoLean(from body: [SerializedJoint]) -> Double {
+        let map = Dictionary(uniqueKeysWithValues: body.map { ($0.name, $0) })
+        guard let ls = map["leftShoulder"], let rs = map["rightShoulder"],
+              let lh = map["leftHip"], let rh = map["rightHip"] else { return 0 }
+        let shoulderMidX = (ls.x + rs.x) * 0.5
+        let hipMidX = (lh.x + rh.x) * 0.5
+        let shoulderWidth = max(abs(rs.x - ls.x), 0.05)
+        return max(-1, min(1, (shoulderMidX - hipMidX) / shoulderWidth))
+    }
+
+    /// Absolute shoulder-line tilt 0…1 (0 = level).
+    static func shoulderTilt(from body: [SerializedJoint]) -> Double {
+        let map = Dictionary(uniqueKeysWithValues: body.map { ($0.name, $0) })
+        guard let ls = map["leftShoulder"], let rs = map["rightShoulder"] else { return 0 }
+        let dy = abs(ls.y - rs.y)
+        let dx = max(abs(rs.x - ls.x), 0.05)
+        let angle = abs(atan2(dy, dx)) // radians
+        return min(1, angle / 0.45)
+    }
 
     private static func packHand(named chirality: String, in hands: [SerializedHand]) -> [Double] {
         if let hand = hands.first(where: { $0.chirality == chirality }) {

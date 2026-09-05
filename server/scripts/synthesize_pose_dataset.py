@@ -20,7 +20,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from pipeline.normalize import FEATURE_DIM, HAND_JOINTS, BODY_JOINTS, FACE_JOINTS  # noqa: E402
+from pipeline.normalize import FEATURE_DIM, HAND_JOINTS, BODY_JOINTS, FACE_JOINTS, NMM_CHANNELS  # noqa: E402
 from pipeline.vocab import GLOSS_VOCAB  # noqa: E402
 
 # Hand joint indices in the 21-joint MediaPipe/Vision order
@@ -104,18 +104,56 @@ def _body_neutral() -> np.ndarray:
 
 
 def _face_neutral() -> np.ndarray:
-    f = np.zeros((10, 2), dtype=np.float32)
+    """(20, 2) face joints matching FACE_JOINTS order (v1 first 10 + v2 additive)."""
+    f = np.zeros((20, 2), dtype=np.float32)
     f[0] = (0.46, 0.20)  # leftEye
     f[1] = (0.54, 0.20)
-    f[2] = (0.50, 0.24)
-    f[3] = (0.46, 0.28)
+    f[2] = (0.50, 0.24)  # nose
+    f[3] = (0.46, 0.28)  # mouthLeft
     f[4] = (0.54, 0.28)
-    f[5] = (0.44, 0.17)
+    f[5] = (0.44, 0.17)  # leftEyebrowOuter
     f[6] = (0.56, 0.17)
-    f[7] = (0.50, 0.32)
-    f[8] = (0.50, 0.14)
-    f[9] = (0.50, 0.28)
+    f[7] = (0.50, 0.32)  # chin
+    f[8] = (0.50, 0.14)  # forehead
+    f[9] = (0.50, 0.28)  # mouthCenter
+    # v2 additive
+    f[10] = (0.47, 0.175)  # leftEyebrowInner
+    f[11] = (0.53, 0.175)
+    f[12] = (0.46, 0.215)  # leftEyeTop
+    f[13] = (0.46, 0.185)  # leftEyeBottom
+    f[14] = (0.54, 0.215)
+    f[15] = (0.54, 0.185)
+    f[16] = (0.50, 0.295)  # outerLipTop
+    f[17] = (0.50, 0.265)  # outerLipBottom
+    f[18] = (0.50, 0.290)
+    f[19] = (0.50, 0.270)
     return f
+
+
+def _nmm_for_gloss(gloss: str, rng: np.random.Generator) -> np.ndarray:
+    """Linguistically-ish NMM variation: questions raise brows; negation shakes; emphasis leans."""
+    from pipeline.normalize import NMM_CHANNELS
+
+    g = gloss.upper()
+    nmm = rng.normal(0.08, 0.04, len(NMM_CHANNELS)).astype(np.float32)
+    nmm = np.clip(nmm, 0, 1)
+    questions = {"WHAT", "WHERE", "WHEN", "WHO", "WHY", "HOW", "WHICH", "QUESTION"}
+    negation = {"NO", "DONT-KNOW", "WRONG", "FALSE"}
+    emphasis = {"IMPORTANT", "NEED", "HELP", "STOP", "LOVE", "ANGRY"}
+    if g in questions:
+        nmm[0] = float(rng.uniform(0.55, 0.95))  # browRaise
+        nmm[2] = float(rng.uniform(0.35, 0.7))   # eyeWiden
+    if g in negation:
+        nmm[7] = float(rng.uniform(0.5, 0.95))   # headShake
+        nmm[6] = float(rng.uniform(0.35, 0.7))   # frown
+    if g in {"YES"}:
+        nmm[8] = float(rng.uniform(0.45, 0.9))   # headNod
+    if g in emphasis:
+        nmm[9] = float(rng.choice([-1, 1]) * rng.uniform(0.35, 0.8))  # torsoLean
+        nmm[10] = float(rng.uniform(0.35, 0.75))  # shoulderTilt
+    if g in {"HAPPY", "LOVE", "HELLO", "HI"}:
+        nmm[5] = float(rng.uniform(0.4, 0.85))  # smile
+    return nmm
 
 
 # Motion primitive: name -> generator(t in 0..1, rng) -> dict of modifiers
@@ -382,7 +420,8 @@ def synthesize_sequence(gloss: str, T: int, rng: np.random.Generator) -> np.ndar
     body = _body_neutral()
     # Jitter shoulders
     body += rng.normal(0, 0.008, body.shape).astype(np.float32)
-    face = _face_neutral() + rng.normal(0, 0.005, (10, 2)).astype(np.float32)
+    face = _face_neutral() + rng.normal(0, 0.005, (20, 2)).astype(np.float32)
+    nmm_base = _nmm_for_gloss(gloss, rng)
 
     # Base wrist positions near shoulders
     r_base = np.array([0.62, y0], dtype=np.float32)
@@ -428,13 +467,32 @@ def synthesize_sequence(gloss: str, T: int, rng: np.random.Generator) -> np.ndar
 
         activity = float(np.clip(np.linalg.norm([dx, dy]) * 4 + 0.05 + rng.normal(0, 0.01), 0, 1))
 
+        # Mild per-frame NMM jitter so the classifier sees temporal variation
+        nmm = np.clip(nmm_base + rng.normal(0, 0.03, nmm_base.shape).astype(np.float32), -1, 1)
+        # Keep non-lean channels in 0..1
+        for i, name in enumerate(NMM_CHANNELS):
+            if name != "torsoLean":
+                nmm[i] = np.clip(nmm[i], 0, 1)
+
+        # Shift brows/eyes on the face mesh when NMM says so (so geometry + channels agree)
+        face_t = face.copy()
+        face_t[5, 1] += 0.02 * float(nmm[0])  # left brow outer raise
+        face_t[6, 1] += 0.02 * float(nmm[0])
+        face_t[10, 1] += 0.02 * float(nmm[0])
+        face_t[11, 1] += 0.02 * float(nmm[0])
+        lean = float(nmm[9])
+        body_t = body.copy()
+        body_t[2, 0] += 0.03 * lean  # shoulders shift with lean
+        body_t[5, 0] += 0.03 * lean
+
         vec = np.concatenate(
             [
                 left.reshape(-1),
                 right.reshape(-1),
-                body.reshape(-1),
-                face.reshape(-1),
+                body_t.reshape(-1),
+                face_t.reshape(-1),
                 np.array([activity], dtype=np.float32),
+                nmm.astype(np.float32),
             ]
         )
         frames[t_i] = vec
@@ -448,15 +506,16 @@ def frames_array_to_landmark_dicts(arr: np.ndarray) -> list[dict]:
         left = row[0:42].reshape(21, 2)
         right = row[42:84].reshape(21, 2)
         body = row[84:118].reshape(17, 2)
-        face = row[118:138].reshape(10, 2)
-        activity = float(row[138])
+        face = row[118:158].reshape(20, 2)
+        activity = float(row[158])
+        nmm = row[159:170].tolist() if row.shape[0] >= 170 else [0.0] * 11
 
         def hand(chirality, pts):
             joints = {HAND_JOINTS[i]: [float(pts[i, 0]), float(pts[i, 1])] for i in range(21)}
             return {"chirality": chirality, "confidence": 0.9, "joints": joints}
 
         body_list = [{"name": BODY_JOINTS[i], "x": float(body[i, 0]), "y": float(body[i, 1])} for i in range(17)]
-        face_list = [{"name": FACE_JOINTS[i], "x": float(face[i, 0]), "y": float(face[i, 1])} for i in range(10)]
+        face_list = [{"name": FACE_JOINTS[i], "x": float(face[i, 0]), "y": float(face[i, 1])} for i in range(len(FACE_JOINTS))]
         out.append(
             {
                 "timestamp": t / 15.0,
@@ -464,6 +523,8 @@ def frames_array_to_landmark_dicts(arr: np.ndarray) -> list[dict]:
                 "body": body_list,
                 "face": face_list,
                 "activity": activity,
+                "nmm": [float(x) for x in nmm],
+                "featureLayoutVersion": 2,
             }
         )
     return out

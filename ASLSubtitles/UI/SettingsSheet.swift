@@ -36,12 +36,35 @@ struct SettingsSheet: View {
                 } header: {
                     Text("Continuous recognition")
                 } footer: {
-                    Text("Default: ws://127.0.0.1:8765/v1/stream — on a real device use your Mac’s LAN IP (Bonjour-friendly). Only landmark geometry is sent, never video.")
+                    Text("Default: ws://127.0.0.1:8765/v1/stream — on a real device use your Mac’s LAN IP. Only landmark geometry is sent, never video. Feature layout v\(LandmarkFrame.featureLayoutVersion) includes face + NMM channels.")
+                }
+
+                Section {
+                    Text("Prefer the Call tab for private in-app video. FaceTime screen capture is a workaround only.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Button("Open FaceTime capture coach") {
+                        session.beginCallMode()
+                        dismiss()
+                    }
+                } header: {
+                    Text("FaceTime (advanced)")
+                }
+
+                Section {
+                    Toggle("Show landmark overlay", isOn: $session.showLandmarkDebug)
+                    Toggle("NMM badges (brow / shake / lean)", isOn: $session.showNMMBadges)
+                        .disabled(!session.showLandmarkDebug)
+                } header: {
+                    Text("Debug")
+                } footer: {
+                    Text("Uses face + body cues (questions, negation, emphasis), not hands alone. Phone Vision landmarks are approximate vs studio MoCap.")
                 }
 
                 Section("Privacy") {
                     Label("Video stays on device", systemImage: "lock.shield.fill")
-                    Text("The camera never uploads pixels. When a server is connected, only skeletal landmarks (hands/body/face points) are streamed. Offline mode uses on-device heuristics.")
+                        .foregroundStyle(AppTheme.accent)
+                    Text("The camera never uploads pixels. When a server is connected, only skeletal landmarks (hands/body/face points + NMM channels) are streamed. Offline mode uses on-device heuristics + NMM English rules.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -55,11 +78,6 @@ struct SettingsSheet: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-
-                Section("Recognition") {
-                    Toggle("Show landmark overlay", isOn: $session.showLandmarkDebug)
-                }
-
 
                 Section {
                     TextField("Gloss label (e.g. HELLO)", text: $recordLabel)
@@ -87,11 +105,11 @@ struct SettingsSheet: View {
                 } header: {
                     Text("Landmark training")
                 } footer: {
-                    Text("Record labeled landmark sequences for Create ML Hand Action / fine-tunes. Highest-leverage path to friend-adapted recognition. Clips stay on device in Documents/LandmarkRecordings.")
+                    Text("Record labeled landmark sequences for Create ML Hand Action / fine-tunes. Clips stay on device in Documents/LandmarkRecordings.")
                 }
 
                 Section("Honesty") {
-                    Text("This app streams landmarks like DeepMind SL2T / MediaPipe Holistic architectures. It does **not** include Google’s proprietary SL2T model. Server accuracy depends on the weights you load (see MODELS.md). Offline mode is a small heuristic vocabulary only.")
+                    Text("This app streams landmarks like DeepMind SL2T / MediaPipe Holistic architectures. It does **not** include Google’s proprietary SL2T model. Non-manual markers from phone cameras are soft cues — not studio-grade facial grammar tracking. Server accuracy depends on the weights you load (see MODELS.md).")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -102,11 +120,15 @@ struct SettingsSheet: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(AppTheme.panel.ignoresSafeArea())
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppTheme.accent)
                 }
             }
             .onAppear {
@@ -114,6 +136,9 @@ struct SettingsSheet: View {
                 preferServer = session.recognition.preferServer
             }
         }
+        .preferredColorScheme(.dark)
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 
     private var statusLabel: String {

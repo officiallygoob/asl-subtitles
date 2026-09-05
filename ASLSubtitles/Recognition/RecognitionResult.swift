@@ -7,17 +7,39 @@ enum RecognitionKind: String, Equatable {
 }
 
 struct RecognitionResult: Equatable {
+    /// Display English (may already include NMM conditioning).
     let label: String
     let kind: RecognitionKind
     let confidence: Double
     let timestamp: Date
+    /// Raw gloss token when available (e.g. HELLO).
+    let gloss: String
+    let nmm: NMMState?
 
     static let empty = RecognitionResult(
         label: "",
         kind: .unknown,
         confidence: 0,
-        timestamp: .distantPast
+        timestamp: .distantPast,
+        gloss: "",
+        nmm: nil
     )
+
+    init(
+        label: String,
+        kind: RecognitionKind,
+        confidence: Double,
+        timestamp: Date = Date(),
+        gloss: String = "",
+        nmm: NMMState? = nil
+    ) {
+        self.label = label
+        self.kind = kind
+        self.confidence = confidence
+        self.timestamp = timestamp
+        self.gloss = gloss
+        self.nmm = nmm
+    }
 
     var isConfident: Bool { confidence >= 0.55 && !label.isEmpty }
 }

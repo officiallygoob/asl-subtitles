@@ -6,7 +6,7 @@ import Vision
 enum RecognitionWire {
     struct ClientHello: Codable {
         var type: String = "hello"
-        var protocolVersion: Int = 1
+        var protocolVersion: Int = 2
         var client: String = "ASLSubtitles-iOS"
         var sampleRateHz: Double
         var windowFrames: Int
@@ -57,6 +57,8 @@ final class RecognitionClient: ObservableObject {
     @Published private(set) var lastFinalEnglish: String = ""
     @Published private(set) var lastConfidence: Double = 0
     @Published private(set) var modelName: String = ""
+    /// Latest NMM state (offline analyzer or last stamped outbound frame).
+    @Published private(set) var lastNMM: NMMState = .zero
 
     var serverURLString: String {
         get { UserDefaults.standard.string(forKey: "recognitionServerURL") ?? Self.defaultURL }
@@ -162,12 +164,18 @@ final class RecognitionClient: ObservableObject {
     }
 
     /// Stream one landmark frame (primary path when connected).
-    func sendFrame(_ frame: LandmarkFrame) {
+    func sendFrame(_ frame: LandmarkFrame, nmm: NMMState? = nil) {
+        var outbound = frame
+        outbound.featureLayoutVersion = LandmarkFrame.featureLayoutVersion
+        if let nmm {
+            outbound.nmm = nmm.channelValues
+            lastNMM = nmm
+        }
         switch state {
         case .connected:
-            send(RecognitionWire.FrameMessage(frame: frame))
+            send(RecognitionWire.FrameMessage(frame: outbound))
         case .offlineFallback, .error, .disconnected, .connecting:
-            applyOffline(frame)
+            applyOffline(outbound)
         }
     }
 
@@ -184,34 +192,25 @@ final class RecognitionClient: ObservableObject {
     // MARK: - Offline fallback
 
     private func applyOffline(_ frame: LandmarkFrame) {
-        // Reconstruct HandPoseSnapshot for legacy heuristics.
-        let hands: [HandPoseSnapshot] = frame.hands.compactMap { serialized in
-            var joints: [VNHumanHandPoseObservation.JointName: CGPoint] = [:]
-            for (name, xy) in serialized.joints where xy.count >= 2 {
-                if let j = Self.mapJoint(name) {
-                    joints[j] = CGPoint(x: xy[0], y: xy[1])
-                }
-            }
-            guard !joints.isEmpty else { return nil }
-            let chirality: VNChirality
-            switch serialized.chirality {
-            case "left": chirality = .left
-            case "right": chirality = .right
-            default: chirality = .unknown
-            }
-            return HandPoseSnapshot(chirality: chirality, joints: joints, confidence: serialized.confidence)
-        }
-        let result = offlineRecognizer.recognize(hands: hands)
+        // Holistic path: hands for gloss + face/body NMMs for English.
+        var enriched = frame
+        let result = offlineRecognizer.recognize(frame: enriched)
+        lastNMM = offlineRecognizer.lastNMM
+        enriched.nmm = lastNMM.channelValues
+        enriched.featureLayoutVersion = LandmarkFrame.featureLayoutVersion
+
         let smoothed = offlineSmoother.push(result)
         partialEnglish = smoothed.text
-        partialGloss = smoothed.text.isEmpty ? [] : [smoothed.text.lowercased()]
+        let glossToken = result.gloss.isEmpty
+            ? (smoothed.text.isEmpty ? [] : [smoothed.text.uppercased()])
+            : [result.gloss]
+        partialGloss = glossToken
         lastConfidence = smoothed.confidence
         onPartialUpdate?(partialEnglish, partialGloss, lastConfidence)
 
         if smoothed.isEmpty {
             offlineEmptyStreak += 1
             if offlineEmptyStreak >= offlineEmptyClearThreshold {
-                // Gap long enough that the same word can be signed again later.
                 lastEmittedFinalLabel = ""
             }
             return

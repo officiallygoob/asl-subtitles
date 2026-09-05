@@ -62,5 +62,14 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>ASL Subtitles connects to your recognition server on the local network.</string>
+	<key>RTCScreenSharingUsageDescription</key>
+	<string>ASL Subtitles captures FaceTime or your screen to generate live ASL captions. Video stays on device; only landmarks are processed.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

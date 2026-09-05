@@ -55,7 +55,6 @@ final class TemporalSmoother {
             currentConfidence = avg
             lastAcceptedAt = Date()
         } else if Date().timeIntervalSince(lastAcceptedAt) > holdDuration {
-            // Fade toward empty watching state (current word only).
             currentConfidence = max(0, currentConfidence - 0.08)
             if currentConfidence < 0.25 {
                 currentLabel = ""
@@ -69,6 +68,10 @@ final class TemporalSmoother {
 }
 
 private func displayForm(_ raw: String) -> String {
+    // Preserve NMM-conditioned English phrases (spaces / punctuation).
+    if raw.contains(" ") || raw.contains("?") || raw.contains("!") || raw.contains("'") {
+        return raw
+    }
     if raw.count == 1, raw.rangeOfCharacter(from: .letters) != nil {
         return raw.uppercased()
     }

@@ -20,7 +20,12 @@ sys.path.insert(0, str(ROOT))
 
 
 def normalize_matrix(mat: np.ndarray) -> np.ndarray:
-    """Same centering/scaling as pipeline.normalize.normalize_frames for (T,D)."""
+    """Same centering/scaling as pipeline.normalize.normalize_frames for (T,D).
+
+    Spatial joints end at index 158 (before activity + 11 NMM channels).
+    """
+    from pipeline.normalize import ACTIVITY_IDX
+
     if mat.shape[0] == 0:
         return mat
     body = mat[:, 84:118]
@@ -35,9 +40,12 @@ def normalize_matrix(mat: np.ndarray) -> np.ndarray:
         lw = mat[:, 0:2]
         rw = mat[:, 42:44]
         origin[missing] = 0.5 * (lw[missing] + rw[missing])
-    xy = mat[:, :-1].reshape(mat.shape[0], -1, 2)
+    spatial_end = ACTIVITY_IDX if mat.shape[1] > ACTIVITY_IDX else mat.shape[1] - 1
+    xy = mat[:, :spatial_end].reshape(mat.shape[0], -1, 2)
     xy = (xy - origin[:, None, :]) / scale[:, None, :]
-    return np.concatenate([xy.reshape(mat.shape[0], -1), mat[:, -1:]], axis=1).astype(np.float32)
+    spatial = xy.reshape(mat.shape[0], -1)
+    tail = mat[:, spatial_end:]
+    return np.concatenate([spatial, tail], axis=1).astype(np.float32)
 
 
 def main() -> int:
@@ -138,9 +146,9 @@ def main() -> int:
         "labels": labels,
         "val_acc": best_acc,
         "backend": "poselstm",
-        "trained_on": "synthetic-kinematics-v1",
+        "trained_on": "synthetic-kinematics-v2-nmm",
         "note": (
-            "Trained on synthetic landmark templates matching FEATURE_DIM. "
+            "Trained on synthetic landmark templates matching FEATURE_DIM v2 (face+NMM). "
             "Better than demo heuristics for protocol+limited domain; "
             "fine-tune on LandmarkRecorder / WLASL pose for real signer accuracy. "
             "Not Uni-Sign / not Google SL2T."

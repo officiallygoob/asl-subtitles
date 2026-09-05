@@ -221,7 +221,12 @@ def _dedupe_consecutive(tokens: list[str]) -> list[str]:
     return out
 
 
-def gloss_to_english(gloss: Sequence[str], *, use_llm: bool = False) -> str:
+def gloss_to_english(
+    gloss: Sequence[str],
+    *,
+    use_llm: bool = False,
+    nmm: dict | None = None,
+) -> str:
     tokens = _dedupe_consecutive([_norm(g) for g in gloss if g and _norm(g)])
     if not tokens:
         return ""
@@ -230,21 +235,81 @@ def gloss_to_english(gloss: Sequence[str], *, use_llm: bool = False) -> str:
     normalized = ["ME" if t == "I" else t for t in tokens]
 
     # Longest-phrase match covering the full sequence when possible.
+    sentence = ""
     for n in range(len(normalized), 0, -1):
         for i in range(0, len(normalized) - n + 1):
             key = tuple(normalized[i : i + n])
             if key in GLOSS_PHRASES:
                 if n == len(normalized):
                     sentence = GLOSS_PHRASES[key]
-                    return _maybe_llm(normalized, sentence, use_llm)
-                left = gloss_to_english(normalized[:i], use_llm=False)
+                    sentence = _maybe_llm(normalized, sentence, use_llm)
+                    return _apply_nmm(sentence, normalized, nmm)
+                left = gloss_to_english(normalized[:i], use_llm=False, nmm=None)
                 mid = GLOSS_PHRASES[key]
-                right = gloss_to_english(normalized[i + n :], use_llm=False)
+                right = gloss_to_english(normalized[i + n :], use_llm=False, nmm=None)
                 stitched = " ".join(x for x in [left, mid, right] if x).strip()
-                return _finalize_sentence(stitched)
+                return _apply_nmm(_finalize_sentence(stitched), normalized, nmm)
 
     joined = _tokens_to_sentence(normalized)
-    return _maybe_llm(normalized, joined, use_llm)
+    sentence = _maybe_llm(normalized, joined, use_llm)
+    return _apply_nmm(sentence, normalized, nmm)
+
+
+def _apply_nmm(english: str, tokens: list[str], nmm: dict | None) -> str:
+    """Condition English on brows / negation / lean — soft phone-Vision cues."""
+    if not english or not nmm:
+        return _finalize_sentence(english)
+    text = english.strip()
+    brow = float(nmm.get("browRaise") or 0)
+    shake = float(nmm.get("headShake") or 0)
+    frown = float(nmm.get("frown") or 0)
+    lean = abs(float(nmm.get("torsoLean") or 0))
+    tilt = float(nmm.get("shoulderTilt") or 0)
+    conf = float(nmm.get("confidence") or 0.5)
+
+    # Negation first (head shake / frown)
+    if conf >= 0.25 and (shake >= 0.45 or frown >= 0.55):
+        low = text.lower()
+        if not any(x in low for x in ("not ", "no ", "don't", "n’t", "dont")):
+            primary = tokens[0] if tokens else ""
+            if primary not in {"NO", "DONT-KNOW"}:
+                core = text.rstrip(".!?")
+                if low.startswith("i'm "):
+                    text = "I'm not " + core[4:].strip()
+                elif low.startswith("i "):
+                    text = "I don't " + core[2:].strip().lower()
+                else:
+                    text = "Not " + core[0].lower() + core[1:] if len(core) > 1 else "Not " + core
+
+    # Questions from raised brows
+    wh = {"WHAT", "WHERE", "WHEN", "WHO", "WHY", "HOW", "WHICH", "QUESTION"}
+    if conf >= 0.3 and brow >= 0.45:
+        core = text.rstrip(".!")
+        low = core.lower()
+        if not core.endswith("?"):
+            if tokens and tokens[0] in wh or (tokens and tokens[-1] in wh):
+                text = core + "?"
+            elif low.startswith(("are you", "do you", "what", "where", "how", "who", "why", "when", "which")):
+                text = core + "?"
+            elif low.startswith("i'm "):
+                text = "Are you " + core[4:].strip() + "?"
+            elif low.startswith("i "):
+                text = "Do you " + core[2:].strip().lower() + "?"
+            elif low in {"you", "good", "fine", "ok", "okay"} or low.startswith("you "):
+                text = ("Are you okay?" if low == "you" else f"Are you {low.removeprefix('you ').strip()}?")
+                if not text.endswith("?"):
+                    text = text.rstrip(".") + "?"
+            elif len(core) <= 28:
+                text = f"Are you {low}?"
+            else:
+                text = core + "?"
+
+    # Emphasis from lean / shoulder tilt
+    if conf >= 0.3 and (lean >= 0.35 or tilt >= 0.4):
+        if not text.endswith("?") and not text.endswith("!"):
+            text = text.rstrip(".") + "!"
+
+    return _finalize_sentence(text)
 
 
 def _tokens_to_sentence(tokens: list[str]) -> str:
