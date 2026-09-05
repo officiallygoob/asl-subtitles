@@ -175,11 +175,21 @@ struct CallTabView: View {
             Text("In-app video calling")
                 .font(.title3.weight(.bold))
                 .foregroundStyle(.white)
-            Text("Own both video feeds, run ASL recognition on your friend’s frames, and keep persistent captions. Signaling is stubbed — next step is WebRTC or LiveKit.")
+            Text("Invite with a link or code and a username — we never ask for phone numbers. Signaling is stubbed; next step is WebRTC or LiveKit.")
                 .font(.footnote)
                 .foregroundStyle(AppTheme.captionMuted)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 8)
+
+            HStack {
+                Image(systemName: "person.crop.circle")
+                    .foregroundStyle(AppTheme.accent)
+                TextField("Username (no phone #)", text: $call.username)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            }
+            .padding(12)
+            .background(AppTheme.panelElevated, in: Capsule())
 
             Button {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -190,7 +200,7 @@ struct CallTabView: View {
                 }
                 call.createInvite()
             } label: {
-                Label("Create call link", systemImage: "link.badge.plus")
+                Label("Share call link", systemImage: "square.and.arrow.up")
                     .font(.headline.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -200,19 +210,23 @@ struct CallTabView: View {
             .background(AppTheme.accent, in: Capsule())
 
             HStack {
-                TextField("Paste invite link", text: $call.joinField)
+                TextField("Join with link or code", text: $call.joinField)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .padding(12)
                     .background(AppTheme.panelElevated, in: Capsule())
                 Button("Join") {
-                    call.joinWithLink()
+                    call.joinWithLinkOrCode()
                     session.start()
                 }
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(AppTheme.accent)
                 .disabled(call.joinField.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
+
+            Text("No Contacts access. No SMS. Just usernames + links.")
+                .font(.caption2)
+                .foregroundStyle(AppTheme.captionMuted)
 
             Spacer(minLength: 8)
         }
@@ -221,22 +235,34 @@ struct CallTabView: View {
 
     private var inCallControls: some View {
         VStack(spacing: 12) {
-            if !call.inviteLink.isEmpty, call.phase == .waitingForPeer {
-                HStack {
-                    Text(call.inviteLink)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(AppTheme.captionSecondary)
-                        .lineLimit(1)
-                    Spacer()
-                    Button(showCopied ? "Copied" : "Copy") {
-                        UIPasteboard.general.string = call.inviteLink
-                        showCopied = true
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            if !call.inviteLink.isEmpty, call.phase == .waitingForPeer || call.phase == .connecting {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("Code \(call.inviteCode)")
+                            .font(.subheadline.weight(.bold).monospaced())
+                            .foregroundStyle(AppTheme.accent)
+                        Spacer()
+                        Text("as \(call.displayName)")
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.captionMuted)
                     }
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(AppTheme.accent)
+                    HStack {
+                        Text(call.inviteLink)
+                            .font(.caption2.monospaced())
+                            .foregroundStyle(AppTheme.captionSecondary)
+                            .lineLimit(1)
+                        Spacer()
+                        Button(showCopied ? "Copied" : "Copy link") {
+                            UIPasteboard.general.string = call.inviteLink
+                            showCopied = true
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(AppTheme.accent)
+                    }
                 }
-                .padding(.horizontal, 4)
+                .padding(12)
+                .liquidGlassCard(cornerRadius: 14)
             }
 
             GlassChrome {
