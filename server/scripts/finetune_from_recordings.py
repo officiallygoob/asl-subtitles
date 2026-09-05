@@ -73,7 +73,8 @@ def main() -> int:
 
     model = PoseLSTMClassifier(
         input_dim=int(ckpt.get("input_dim", FEATURE_DIM)),
-        hidden_dim=int(ckpt.get("hidden_dim", 192)),
+        hidden_dim=int(ckpt.get("hidden_dim", 256)),
+        num_layers=int(ckpt.get("num_layers", 3)),
         num_classes=len(labels),
     )
     # Load overlapping weights

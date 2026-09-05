@@ -6,7 +6,7 @@ Inspired by privacy-preserving landmark architectures (MediaPipe Holistic → st
 
 > **Privacy:** captions run **entirely on-device** by default (camera → Vision landmarks → Core ML → subtitles). Nothing leaves the phone unless you opt into a LAN server.
 >
-> **Honesty:** open-domain fluent ASL→English is **unsolved**. Accuracy comes from **offline training on public pose dumps** (WLASL100 → Core ML), with optional friend Capture later — not from uploading your conversations.
+> **Honesty:** open-domain fluent ASL→English is **unsolved**. Accuracy comes from **offline training on public pose dumps** (WLASL100+WLASL300 overlap → Core ML), with optional friend Capture later — not from uploading your conversations.
 
 ## Architecture
 
@@ -178,15 +178,15 @@ Details: [`MODELS.md`](MODELS.md) · server: [`server/README.md`](server/README.
 | Works today | Does not (yet) |
 |-------------|----------------|
 | On-device continuous gloss spotting for a **limited** vocabulary | Fluent open-domain conversation |
-| Bundled Core ML trained offline on **WLASL100 pose landmarks** (+ synth fill) | Signer-independent studio-grade accuracy |
+| Bundled Core ML trained offline on **WLASL100 + WLASL300-overlap pose** (+ synth fill, aug) | Signer-independent studio-grade accuracy |
 | NMM soft cues (question / negation / emphasis) on English | Reliable fine facial grammar / role shift |
 | Optional Train/Capture for a friend’s dialect | Automatic dialect discovery |
 
-**Expected gain vs heuristics-only:** measurable lift on glosses covered by WLASL100 pose pretrain (see `server/models/eval_report.json`, ~17–25% top-1 on held-out real pose with a 234-class head — above chance, below research GCN SLR). **Friend-specific fine-tune still required for comfortable 1:1 chat.**
+**Expected gain vs heuristics-only:** measurable lift on glosses covered by WLASL pose pretrain (see `server/models/eval_report.json`: WLASL100 holdout **~26% val / ~21% test top-1**, **~51% / ~43% top-5**, 234-class head — above chance, below research GCN SLR). **Friend-specific fine-tune still required for comfortable 1:1 chat.**
 
 ### How we train (offline, on your machines)
 
-1. Download public **pose** dumps (not required at app runtime) — WLASL100 COCO-135 HDF5.
+1. Download public **pose** dumps (not required at app runtime) — WLASL100/300 (+ optional ASL Citizen) COCO-135 HDF5.
 2. `python server/scripts/convert_wlasl_hdf5.py --mix-synth`
 3. `python server/scripts/train_ondevice_coreml.py` → writes `ASLSubtitles/Models/ASLSignClassifier.mlpackage`
 4. App loads Core ML locally. No video ever uploaded.
@@ -197,7 +197,7 @@ Details + licenses: [`MODELS.md`](MODELS.md).
 
 - Not an interpreter. Heuristics = subset; server = larger limited domain; friend data still required for reliability.
 - Ambiguous fingerspelling and facial grammar remain hard.
-- Bundled Core ML is trained on WLASL100 pose (+ synth fill) — real pose signal, still limited vs fluent chat; friend fine-tune helps (see MODELS.md).
+- Bundled Core ML is trained on WLASL100+WLASL300-overlap pose (+ synth fill, speed/mirror/noise aug) — real pose signal, still limited vs fluent chat; friend fine-tune helps (see MODELS.md).
 - Uni-Sign `.pth` is research-only here (architecture mismatch); not Google SL2T.
 - Simulator has no real camera/hands; use a device.
 

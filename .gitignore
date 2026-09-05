@@ -53,3 +53,7 @@ server/models/*.meta.json
 # Ship Core ML package; ignore scratch exports
 !ASLSubtitles/Models/ASLSignClassifier.mlpackage
 !ASLSubtitles/Models/ASLSignClassifier.labels.json
+server/models/sign_classifier_multisource*.pt
+server/models/eval_report_multisource*.json
+server/models/pose_features*.npz
+!server/models/sign_classifier.pt

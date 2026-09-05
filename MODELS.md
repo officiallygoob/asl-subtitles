@@ -17,7 +17,7 @@ Camera → Vision holistic landmarks → Core ML PoseLSTM → English subtitles
 **True open-domain conversational ASL → English is unsolved.** This project ships:
 
 1. An **on-device** continuous landmark → Core ML classifier (`ASLSignClassifier.mlpackage`).
-2. Training scripts that convert **public pose dumps** (WLASL100 COCO-135) into our `FEATURE_DIM=170` layout and export Core ML.
+2. Training scripts that convert **public pose dumps** (WLASL / ASL Citizen COCO-135) into our `FEATURE_DIM=170` layout and export Core ML.
 3. Optional friend Capture/Train for adaptation later — **not** the primary accuracy path.
 4. Clear docs that this is **not** Google SL2T.
 
@@ -25,7 +25,7 @@ Camera → Vision holistic landmarks → Core ML PoseLSTM → English subtitles
 
 | Component | Behavior |
 |-----------|----------|
-| **iOS Core ML (primary)** | Bundled `ASLSignClassifier.mlpackage` — PoseLSTM over hands+face+body+NMM |
+| **iOS Core ML (primary)** | Bundled `ASLSignClassifier.mlpackage` — PoseLSTM-v3-stable over hands+face+body+NMM |
 | iOS heuristics | Fallback when Core ML low-confidence / missing |
 | LAN server | Opt-in only; loads `sign_classifier.pt` |
 | Uni-Sign `.pth` | Detected, not inferred (architecture mismatch) |
@@ -33,23 +33,34 @@ Camera → Vision holistic landmarks → Core ML PoseLSTM → English subtitles
 ## Shipping on-device model
 
 - **Input:** `poses` float32 `[1, 32, 170]` (FEATURE_DIM v2).
-- **Arch:** bidirectional LSTM + **NMM-conditioned temporal attention** + gloss head (+ NMM aux during train).
-- **Training data (offline):** WLASL100 pose HDF5 from [CristianLazoQuispe/pose-action-recognition](https://huggingface.co/datasets/CristianLazoQuispe/pose-action-recognition) (COCO-133+2, MIT packaging of landmarks). Underlying WLASL video rights remain with WLASL (research / C-UDA). We redistribute **converted landmarks + trained weights**, not videos.
-- **Synth fill:** conversational glosses missing from WLASL100 are filled with kinematic templates so HELLO etc. remain in the label set.
-- **Eval (held-out WLASL test + val):** see `server/models/eval_report.json` — roughly **~17–25% top-1** over the mixed 234-class head on real pose holdout (far above chance ~0.4%; far below studio SLR). **Friend-specific data still helps a lot.**
+- **Arch:** deeper bidirectional LSTM (3×224) + **NMM-conditioned temporal attention** + gloss head (+ NMM aux during train).
+- **Training data (offline):** public pose HDF5 from [CristianLazoQuispe/pose-action-recognition](https://huggingface.co/datasets/CristianLazoQuispe/pose-action-recognition) (MIT packaging of landmarks):
+  - WLASL100 + overlapping WLASL300 clips (same English gloss strings)
+  - Synth kinematic fill for conversational glosses missing from public pose
+  - ASL Citizen 100 downloaded & convertible; **not in shipping head** — gloss IDs barely overlap WLASL without a lexicon map (documented blocker)
+- **Augmentation:** speed resample, L/R mirror, Gaussian noise, temporal shift, joint dropout; class-balanced sampling.
+- **Underlying video rights** remain with WLASL (research / C-UDA). We redistribute **converted landmarks + trained weights**, not videos.
+- **Eval (held-out WLASL100, comparable to prior ship):** see `server/models/eval_report.json`
 
-### Rebuild Core ML (on your Mac/CI with Python)
+| Split | Previous top-1 | **Now top-1** | **Now top-5** |
+|-------|----------------|---------------|---------------|
+| Val (WLASL100) | 25.4% | **25.7%** | **50.9%** |
+| Test (WLASL100) | 16.7% | **20.9%** | **43.0%** |
+
+234-class head. Friend-specific data still helps a lot.
+
+### Rebuild Core ML
 
 ```bash
 cd server
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt -r requirements-ml.txt
 pip install h5py coremltools
-# Download WLASL100 pose dumps into server/data/wlasl100/ (see scripts/convert_wlasl_hdf5.py docstring)
-python scripts/convert_wlasl_hdf5.py --mix-synth
-python scripts/train_ondevice_coreml.py
-# writes ASLSubtitles/Models/ASLSignClassifier.mlpackage + server/models/sign_classifier.pt
-python scripts/eval_classifier.py --split test
+# Place HDF5 under server/data/{wlasl100,wlasl300,aslcitizen100}/
+python scripts/convert_pose_hdf5.py --sources wlasl100,wlasl300,aslcitizen100 --mix-synth --focus-wlasl100
+# Optional: drop Citizen rows if gloss aliases are noisy
+python scripts/train_ondevice_coreml.py --data models/pose_features.npz
+python scripts/eval_classifier.py --split test --source-filter wlasl100
 ```
 
 ### Optional friend fine-tune
@@ -62,12 +73,13 @@ python scripts/eval_classifier.py --split test
 
 | Source | What we use | License notes |
 |--------|-------------|---------------|
-| WLASL100 pose HDF5 (WholeBodyPose packaging) | COCO-135 landmarks → our layout | MIT packaging; cite WholeBodyPose; underlying WLASL is research/C-UDA |
+| WLASL100 / WLASL300 pose HDF5 | COCO-135 → our layout; shipping uses W100 + W300 overlap | MIT packaging; cite WholeBodyPose; underlying WLASL research/C-UDA |
+| ASL Citizen 100 pose HDF5 | Downloaded; convert OK; **not merged into shipping labels** | MIT packaging; Microsoft research terms for videos; gloss naming mismatch |
 | Synth kinematics | Fill missing conversational glosses | In-repo |
 | Uni-Sign checkpoints | Research only, not runtime | CC-BY-NC-4.0 |
-| How2Sign / ASL Citizen pose | Documented next; larger downloads | Follow original dataset terms |
+| How2Sign pose | **Blocked this round** | Continuous SLT; large shards; needs CTC/transducer — next continuous path |
 
-**Next data:** ASL Citizen 100/300 pose HDF5 and How2Sign MediaPipe landmark shards for continuous SLT pretrain — convert with the same COCO-135 mapper when disk/time allow.
+**Blockers:** How2Sign (task mismatch + size). ASL Citizen→WLASL lexicon (only ~19 glosses alias-match after stripping sense ids). ASL Citizen 300/2731 and WLASL2000 remain available on the same HF repo.
 
 ## Feature layout
 
@@ -83,7 +95,7 @@ python scripts/eval_classifier.py --split test
 
 ## Roadmap
 
-1. Larger public pose pretrain (ASL Citizen / How2Sign landmarks)
-2. Stronger continuous decoding (CTC / transducer), not only sliding ISLR
+1. Gloss lexicon alignment for ASL Citizen 100/300/2731 + WLASL2000
+2. Stronger continuous decoding (CTC / transducer) for How2Sign-style data
 3. On-device quantization / ANE tuning
 4. Richer facial grammar beyond soft NMM proxies

@@ -235,69 +235,79 @@
     "THIN",
     "WOMAN"
   ],
-  "val_acc": 0.2544378638267517,
-  "test_acc": 0.1666666716337204,
-  "trained_on": "wlasl100-coco135+synth-fill-aug",
+  "val_acc": 0.23751522600650787,
+  "val_top5": 0.4933008551597595,
+  "test_acc": 0.20000000298023224,
+  "test_top5": 0.427642285823822,
+  "trained_on": "synth+wlasl100+wlasl300",
   "top_confusions": [
     [
-      "AFRICA->CANDY",
+      "BASKETBALL->SUNDAY",
+      4
+    ],
+    [
+      "NOW->PLAY",
+      4
+    ],
+    [
+      "ACCIDENT->EAT",
       2
     ],
     [
-      "BIRTHDAY->WOMAN",
+      "ACCIDENT->HAPPY",
       2
     ],
     [
-      "BLUE->BOWLING",
+      "AFRICA->FULL",
       2
     ],
     [
-      "CITY->BOOK",
+      "AFRICA->BROWN",
       2
     ],
     [
-      "COMPUTER->PAPER",
+      "ALL->COOK",
       2
     ],
     [
-      "COMPUTER->FINISH",
+      "ALL->CHANGE",
       2
     ],
     [
-      "DEAF->CANDY",
+      "APPLE->YESTERDAY",
       2
     ],
     [
-      "LAST->STUDY",
+      "BED->DRINK",
       2
     ],
     [
-      "SECRETARY->LETTER",
+      "BED->MOTHER",
       2
     ],
     [
-      "HEARING->CANDY",
+      "BEFORE->WAIT",
       2
     ],
     [
-      "JACKET->CHAIR",
+      "BEFORE->WHY",
       2
     ],
     [
-      "LETTER->CHAIR",
+      "BEFORE->COOK",
       2
     ],
     [
-      "NOW->DECIDE",
-      2
-    ],
-    [
-      "PINK->WHO",
-      2
-    ],
-    [
-      "PURPLE->BOWLING",
+      "BEFORE->YESTERDAY",
       2
     ]
-  ]
+  ],
+  "wlasl100_subset": {
+    "val_top1": 0.2573964595794678,
+    "val_top5": 0.5088757276535034,
+    "n_val": 338,
+    "test_top1": 0.20930232107639313,
+    "test_top5": 0.43023255467414856,
+    "n_test": 258
+  }
 }

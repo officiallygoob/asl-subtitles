@@ -83,6 +83,15 @@ python scripts/eval_classifier.py --split test
 ## Train from public pose dumps → Core ML
 
 ```bash
+# data/{wlasl100,wlasl300,aslcitizen100}/*.hdf5 from HF CristianLazoQuispe/pose-action-recognition
+python scripts/convert_pose_hdf5.py --sources wlasl100,wlasl300 --mix-synth --focus-wlasl100
+python scripts/train_ondevice_coreml.py
+python scripts/eval_classifier.py --split test --source-filter wlasl100
+```
+
+## Train from public pose dumps → Core ML (legacy)
+
+```bash
 pip install -r requirements-ml.txt h5py coremltools
 # place WLASL100 HDF5 under data/wlasl100/
 python scripts/convert_wlasl_hdf5.py --mix-synth

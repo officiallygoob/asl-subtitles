@@ -1,8 +1,7 @@
 """PoseLSTM + NMM-aware temporal attention — drop-in for .pt / Core ML export.
 
-Architecture matches ASL landmark classifiers (32-frame windows, FEATURE_DIM=170).
-NMM channels (last 11 dims) gate temporal attention so face/body grammar is
-first-class, not drowned by hand kinematics.
+v3-stable: proven BiLSTM + NMM-conditioned attention (ships well), with optional
+deeper layers / larger hidden. Avoids fragile MHA export quirks that hurt holdout.
 """
 
 from __future__ import annotations
@@ -21,12 +20,13 @@ if nn is not None:
         def __init__(
             self,
             input_dim: int = 170,
-            hidden_dim: int = 192,
-            num_layers: int = 2,
+            hidden_dim: int = 224,
+            num_layers: int = 3,
             num_classes: int = 25,
             bidirectional: bool = True,
-            dropout: float = 0.25,
+            dropout: float = 0.3,
             nmm_dim: int = 11,
+            attn_heads: int = 4,  # kept for ckpt compat; unused in stable attn
         ) -> None:
             super().__init__()
             self.input_dim = input_dim
@@ -47,7 +47,6 @@ if nn is not None:
                 nn.Tanh(),
                 nn.Linear(hidden_dim, 1),
             )
-            # Auxiliary NMM head: question / negation / emphasis logits
             self.nmm_aux = nn.Sequential(
                 nn.Linear(hidden_dim * direction, hidden_dim // 2),
                 nn.ReLU(),
@@ -65,8 +64,7 @@ if nn is not None:
         def forward(self, x, return_aux: bool = False):  # (B, T, D)
             out, _ = self.lstm(x)
             nmm = x[:, :, -self.nmm_dim :]
-            # Temporal attention conditioned on NMM channels
-            scores = self.attn(torch.cat([out, nmm], dim=-1)).squeeze(-1)  # (B, T)
+            scores = self.attn(torch.cat([out, nmm], dim=-1)).squeeze(-1)
             weights = torch.softmax(scores, dim=-1).unsqueeze(-1)
             pooled = (out * weights).sum(dim=1)
             logits = self.fc(pooled)

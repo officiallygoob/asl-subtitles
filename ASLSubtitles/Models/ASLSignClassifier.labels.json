@@ -241,7 +241,5 @@
     32,
     170
   ],
-  "val_acc": 0.2544378638267517,
-  "test_acc": 0.1666666716337204,
-  "trained_on": "wlasl100-coco135+synth-fill-aug"
+  "arch": "poselstm-v3"
 }
