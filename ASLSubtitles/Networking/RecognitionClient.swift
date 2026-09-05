@@ -47,8 +47,8 @@ enum RecognitionConnectionState: Equatable {
     case error(String)
 }
 
-/// Streams landmark frames to a recognition server over WebSocket.
-/// Falls back to on-device heuristics when the server is unavailable.
+/// Optional LAN WebSocket client (dev-only). Default product path is on-device Core ML.
+/// Privacy: preferServer defaults to false — nothing leaves the device.
 @MainActor
 final class RecognitionClient: ObservableObject {
     @Published private(set) var state: RecognitionConnectionState = .disconnected
@@ -70,7 +70,7 @@ final class RecognitionClient: ObservableObject {
 
     var preferServer: Bool {
         get {
-            if UserDefaults.standard.object(forKey: "preferRecognitionServer") == nil { return true }
+            if UserDefaults.standard.object(forKey: "preferRecognitionServer") == nil { return false }  // on-device default
             return UserDefaults.standard.bool(forKey: "preferRecognitionServer")
         }
         set {
@@ -88,8 +88,12 @@ final class RecognitionClient: ObservableObject {
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
-    /// Offline fallback recognizer (heuristics) — not the primary path.
+    /// On-device recognizer (Core ML + heuristics) — primary product path.
     private let offlineRecognizer = SignRecognizer()
+    /// Settings / status: Core ML package name or heuristics.
+    var onDeviceModelName: String {
+        offlineRecognizer.coreMLAvailable ? offlineRecognizer.coreMLModelName : "heuristics+NMM"
+    }
     private let offlineSmoother = TemporalSmoother()
     /// Last gloss committed via onFinalSentence on the offline path.
     private var lastEmittedFinalLabel: String = ""

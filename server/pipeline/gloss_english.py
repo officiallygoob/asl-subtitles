@@ -268,7 +268,7 @@ def _apply_nmm(english: str, tokens: list[str], nmm: dict | None) -> str:
     conf = float(nmm.get("confidence") or 0.5)
 
     # Negation first (head shake / frown)
-    if conf >= 0.25 and (shake >= 0.45 or frown >= 0.55):
+    if conf >= 0.2 and (shake >= 0.38 or frown >= 0.48):
         low = text.lower()
         if not any(x in low for x in ("not ", "no ", "don't", "n’t", "dont")):
             primary = tokens[0] if tokens else ""
@@ -283,7 +283,7 @@ def _apply_nmm(english: str, tokens: list[str], nmm: dict | None) -> str:
 
     # Questions from raised brows
     wh = {"WHAT", "WHERE", "WHEN", "WHO", "WHY", "HOW", "WHICH", "QUESTION"}
-    if conf >= 0.3 and brow >= 0.45:
+    if conf >= 0.25 and brow >= 0.38:
         core = text.rstrip(".!")
         low = core.lower()
         if not core.endswith("?"):
@@ -305,7 +305,7 @@ def _apply_nmm(english: str, tokens: list[str], nmm: dict | None) -> str:
                 text = core + "?"
 
     # Emphasis from lean / shoulder tilt
-    if conf >= 0.3 and (lean >= 0.35 or tilt >= 0.4):
+    if conf >= 0.25 and (lean >= 0.28 or tilt >= 0.32):
         if not text.endswith("?") and not text.endswith("!"):
             text = text.rstrip(".") + "!"
 

@@ -44,3 +44,12 @@ server/models/uni_sign.pt
 # Secrets / local
 .env
 *.pem
+
+# Offline training data (download locally; do not commit)
+server/data/
+server/models/wlasl100_features.npz
+server/models/*.meta.json
+
+# Ship Core ML package; ignore scratch exports
+!ASLSubtitles/Models/ASLSignClassifier.mlpackage
+!ASLSubtitles/Models/ASLSignClassifier.labels.json

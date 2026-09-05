@@ -1,10 +1,10 @@
 import Foundation
 import Vision
 
-/// Orchestrates Core ML (when present) → everyday signs → fingerspelling,
+/// Orchestrates on-device Core ML (primary) → everyday signs → fingerspelling,
 /// then applies non-manual markers (NMMs) so face/body cue English subtitles.
 ///
-/// Offline fallback path only — Conversation Mode prefers the recognition server.
+/// Privacy: all inference stays on-device. No network required.
 final class SignRecognizer {
     private let fingerspelling = FingerspellingClassifier()
     private let everyday = EverydaySignHeuristics()
@@ -16,8 +16,9 @@ final class SignRecognizer {
     private var lateralDirection: CGFloat = 0
     private var lateralOscillations = 0
     private var framesSinceOscillationReset = 0
+    /// Holistic FEATURE_DIM windows for Core ML (hands+face+body+NMM).
     private var featureWindow: [[Double]] = []
-    private let windowSize = 24
+    private let windowSize = 32
 
     private(set) var lastNMM: NMMState = .zero
 
@@ -35,19 +36,33 @@ final class SignRecognizer {
         lastNMM = .zero
     }
 
-    /// Preferred entry: holistic frame so NMMs drive English, not just the feature pack.
+    /// Preferred entry: holistic frame so NMMs + Core ML see face/body grammar.
     func recognize(frame: LandmarkFrame) -> RecognitionResult {
         lastNMM = nmmAnalyzer.push(frame)
-        let hands = Self.hands(from: frame)
-        let raw = recognizeHands(hands)
+        var stamped = frame
+        if stamped.nmm == nil {
+            stamped.nmm = lastNMM.channelValues
+        }
+        featureWindow.append(stamped.featureVector())
+        if featureWindow.count > windowSize {
+            featureWindow.removeFirst(featureWindow.count - windowSize)
+        }
+
+        let hands = Self.hands(from: stamped)
+        let raw: RecognitionResult
+        if featureWindow.count >= 12, let ml = coreML.classify(window: featureWindow) {
+            raw = ml
+        } else {
+            raw = recognizeHands(hands)
+        }
         guard !raw.label.isEmpty else { return raw }
-        let english = GlossEnglish.english(gloss: raw.label, nmm: lastNMM)
+        let english = GlossEnglish.english(gloss: raw.gloss.isEmpty ? raw.label : raw.gloss, nmm: lastNMM)
         return RecognitionResult(
             label: english,
             kind: raw.kind,
             confidence: raw.confidence,
             timestamp: raw.timestamp,
-            gloss: raw.label.uppercased(),
+            gloss: (raw.gloss.isEmpty ? raw.label : raw.gloss).uppercased(),
             nmm: lastNMM
         )
     }
@@ -59,21 +74,11 @@ final class SignRecognizer {
     private func recognizeHands(_ hands: [HandPoseSnapshot]) -> RecognitionResult {
         guard !hands.isEmpty else {
             decayMotion()
-            featureWindow.removeAll()
             return .empty
         }
 
         let features = hands.map { LandmarkFeatures(hand: $0) }
         let motion = updateMotion(with: features[0])
-
-        featureWindow.append(features[0].featureVector())
-        if featureWindow.count > windowSize {
-            featureWindow.removeFirst(featureWindow.count - windowSize)
-        }
-
-        if featureWindow.count >= 12, let ml = coreML.classify(window: featureWindow) {
-            return ml
-        }
 
         if let sign = everyday.classify(hands: features, motion: motion), sign.confidence >= 0.58 {
             return sign

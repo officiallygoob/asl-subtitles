@@ -1,0 +1,9 @@
+{
+  "val_top1": 0.2544,
+  "test_top1": 0.1667,
+  "n_classes": 234,
+  "n_val": 338,
+  "n_test": 258,
+  "trained_on": "wlasl100-coco135+synth-fill-aug",
+  "privacy": "offline public pose train; on-device Core ML inference; preferServer=false"
+}

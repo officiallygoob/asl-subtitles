@@ -4,7 +4,9 @@ Real conversations with a deaf friend: **live English captions from signing**, p
 
 Inspired by privacy-preserving landmark architectures (MediaPipe Holistic → stream geometry only → continuous SLT), similar in *shape* to research systems like DeepMind SL2T / Uni-Sign — **we do not include or claim Google’s model**.
 
-> **Honesty:** open-domain fluent ASL→English chat is **unsolved**. This app ships a **limited-domain continuous recognition** architecture + offline heuristics. The path to usefulness is continuous streaming + **friend adaptation** (record → Create ML / fine-tune), not marketing a toy phrase spotter as “fluent.”
+> **Privacy:** captions run **entirely on-device** by default (camera → Vision landmarks → Core ML → subtitles). Nothing leaves the phone unless you opt into a LAN server.
+>
+> **Honesty:** open-domain fluent ASL→English is **unsolved**. Accuracy comes from **offline training on public pose dumps** (WLASL100 → Core ML), with optional friend Capture later — not from uploading your conversations.
 
 ## Architecture
 
@@ -13,8 +15,9 @@ Inspired by privacy-preserving landmark architectures (MediaPipe Holistic → st
 │  Camera → Vision holistic landmarks (hands + body + face)           │
 │       ↓ discard pixels                                              │
 │  LandmarkFrame buffer (~36 frames) + utterance segmentation         │
-│       ├── WebSocket stream ──► Recognition server (LAN)             │
-│       └── offline fallback: Core ML (if present) / heuristics       │
+│       ├── on-device Core ML PoseLSTM (DEFAULT — privacy first)       │
+│       ├── heuristics fallback when ML low-confidence                │
+│       └── optional LAN WebSocket (dev only, off by default)         │
 │                                                                     │
 │  Mic → SFSpeechRecognizer → "You said" transcript (reverse channel) │
 │                                                                     │
@@ -81,8 +84,9 @@ On a physical iPhone, set **Settings → Continuous recognition** to
 | NMMs | Face/body cues drive questions / negation / emphasis |
 | Liquid Glass | iOS 27 chrome for controls; accessibility-first captions |
 | Siri / Apple Intelligence | App Intents, on-device polish/summary/suggestions, past chats |
-| LandmarkRecorder | Export labeled JSON/JSONL for Create ML / fine-tunes |
-| Server | FastAPI WS + REST, shipping PoseLSTM (~170+ conversational glosses), gloss→English, Docker |
+| On-device Core ML | Bundled `ASLSignClassifier.mlpackage` (PoseLSTM + NMM attention) |
+| LandmarkRecorder | Optional friend JSON/JSONL / Create ML CSV (stays on device) |
+| Server (optional) | FastAPI WS + REST for LAN debug — **off by default** |
 
 ## Vocabulary (honest split)
 
@@ -160,20 +164,40 @@ ASL Subtitles **cannot draw inside FaceTime’s own chrome** or tap a private Fa
 
 Requires an **Apple Intelligence–capable device** / region for Foundation Models. If unavailable, template suggestions + extractive summaries still work. Video and transcripts stay on-device; landmark streams to your LAN server never include pixels.
 
-## Friend adaptation (recommended next step)
+## Friend adaptation (optional, after public-data Core ML)
 
 
-1. Settings → **Landmark training** → record labeled glosses with your friend.
-2. Export JSONL → train Create ML Hand Action (or fine-tune server weights).
-3. Install `ASLSignClassifier.mlmodel` on device **or** drop `uni_sign.pt` into `server/models/`.
+1. Ship/use the bundled on-device Core ML (trained offline on public pose data).
+2. Optionally: Settings → **Train / Capture** → record N takes per gloss → Export JSONL / Create ML CSV.
+3. Fine-tune: `python server/scripts/finetune_from_recordings.py --recordings …` then re-export Core ML.
 
 Details: [`MODELS.md`](MODELS.md) · server: [`server/README.md`](server/README.md)
+
+## Accuracy status
+
+| Works today | Does not (yet) |
+|-------------|----------------|
+| On-device continuous gloss spotting for a **limited** vocabulary | Fluent open-domain conversation |
+| Bundled Core ML trained offline on **WLASL100 pose landmarks** (+ synth fill) | Signer-independent studio-grade accuracy |
+| NMM soft cues (question / negation / emphasis) on English | Reliable fine facial grammar / role shift |
+| Optional Train/Capture for a friend’s dialect | Automatic dialect discovery |
+
+**Expected gain vs heuristics-only:** measurable lift on glosses covered by WLASL100 pose pretrain (see `server/models/eval_report.json`, ~17–25% top-1 on held-out real pose with a 234-class head — above chance, below research GCN SLR). **Friend-specific fine-tune still required for comfortable 1:1 chat.**
+
+### How we train (offline, on your machines)
+
+1. Download public **pose** dumps (not required at app runtime) — WLASL100 COCO-135 HDF5.
+2. `python server/scripts/convert_wlasl_hdf5.py --mix-synth`
+3. `python server/scripts/train_ondevice_coreml.py` → writes `ASLSubtitles/Models/ASLSignClassifier.mlpackage`
+4. App loads Core ML locally. No video ever uploaded.
+
+Details + licenses: [`MODELS.md`](MODELS.md).
 
 ## Limitations
 
 - Not an interpreter. Heuristics = subset; server = larger limited domain; friend data still required for reliability.
 - Ambiguous fingerspelling and facial grammar remain hard.
-- Server ships `sign_classifier.pt` (PoseLSTM on synthetic kinematics over 170+ glosses) — better coverage than heuristics, still limited vs real signers; fine-tune on friend data (see MODELS.md).
+- Bundled Core ML is trained on WLASL100 pose (+ synth fill) — real pose signal, still limited vs fluent chat; friend fine-tune helps (see MODELS.md).
 - Uni-Sign `.pth` is research-only here (architecture mismatch); not Google SL2T.
 - Simulator has no real camera/hands; use a device.
 

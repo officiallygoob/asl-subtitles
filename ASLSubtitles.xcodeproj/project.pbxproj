@@ -58,6 +58,8 @@
 		A1LEARN000000000000003 /* LearnDeck.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1LEARN000000000000004 /* LearnDeck.swift */; };
 		A1LEARN000000000000005 /* LearnSessionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1LEARN000000000000006 /* LearnSessionController.swift */; };
 		A1LEARN000000000000007 /* LearnTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1LEARN000000000000008 /* LearnTabView.swift */; };
+		A1ML000000000000000003 /* ASLSignClassifier.mlpackage in Resources */ = {isa = PBXBuildFile; fileRef = A1ML000000000000000001 /* ASLSignClassifier.mlpackage */; };
+		A1ML000000000000000004 /* ASLSignClassifier.labels.json in Resources */ = {isa = PBXBuildFile; fileRef = A1ML000000000000000002 /* ASLSignClassifier.labels.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -101,6 +103,8 @@
 		A1INAPP000000000000002 /* InAppCallController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppCallController.swift; sourceTree = "<group>"; };
 		A1INAPP000000000000004 /* CallTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallTabView.swift; sourceTree = "<group>"; };
 		A1INAPP000000000000006 /* UsernameModerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsernameModerator.swift; sourceTree = "<group>"; };
+		A1ML000000000000000001 /* ASLSignClassifier.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = ASLSignClassifier.mlpackage; sourceTree = "<group>"; };
+		A1ML000000000000000002 /* ASLSignClassifier.labels.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "ASLSignClassifier.labels.json"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -149,6 +153,7 @@
 				A1000000000000000000001C /* Call */,
 				A1000000000000000000001D /* Learn */,
 				FDF36B6DEB304F0A9A1B7BBA /* Assets.xcassets */,
+				A1ML000000000000000005 /* Models */,
 				B742EF12C9D24FB2B7253E83 /* Info.plist */,
 				A1000000000000000000000F /* Preview Content */,
 			);
@@ -296,6 +301,15 @@
 			path = Learn;
 			sourceTree = "<group>";
 		};
+		A1ML000000000000000005 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A1ML000000000000000001 /* ASLSignClassifier.mlpackage */,
+				A1ML000000000000000002 /* ASLSignClassifier.labels.json */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -355,6 +369,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				63025FE3DCFC4FC4925A25EF /* Assets.xcassets in Resources */,
+				A1ML000000000000000003 /* ASLSignClassifier.mlpackage in Resources */,
+				A1ML000000000000000004 /* ASLSignClassifier.labels.json in Resources */,
 				A32631E270774DABBEBD446A /* Preview Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

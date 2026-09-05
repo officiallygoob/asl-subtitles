@@ -4,14 +4,19 @@ struct SettingsSheet: View {
     @ObservedObject var session: ASLSessionController
     @Environment(\.dismiss) private var dismiss
     @State private var serverURL: String = ""
-    @State private var preferServer = true
+    @State private var preferServer = false
     @State private var recordLabel: String = "HELLO"
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    Toggle("Use recognition server", isOn: $preferServer)
+                    LabeledContent("On-device model") {
+                        Text(session.recognition.onDeviceModelName)
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                    Toggle("Use LAN recognition server (dev)", isOn: $preferServer)
                         .onChange(of: preferServer) { _, value in
                             session.recognition.preferServer = value
                         }
@@ -34,9 +39,9 @@ struct SettingsSheet: View {
                         }
                     }
                 } header: {
-                    Text("Continuous recognition")
+                    Text("Recognition (on-device first)")
                 } footer: {
-                    Text("Default: ws://127.0.0.1:8765/v1/stream — on a real device use your Mac’s LAN IP. Only landmark geometry is sent, never video. Feature layout v\(LandmarkFrame.featureLayoutVersion) includes face + NMM channels.")
+                    Text("Privacy-first default: camera → Vision landmarks → on-device Core ML / heuristics → subtitles. Nothing leaves the phone. LAN WebSocket is optional for developers only.")
                 }
 
                 Section {
@@ -64,7 +69,7 @@ struct SettingsSheet: View {
                 Section("Privacy") {
                     Label("Video stays on device", systemImage: "lock.shield.fill")
                         .foregroundStyle(AppTheme.accent)
-                    Text("The camera never uploads pixels. When a server is connected, only skeletal landmarks (hands/body/face points + NMM channels) are streamed. Offline mode uses on-device heuristics + NMM English rules.")
+                    Text("Default path never uploads. Camera → Vision landmarks → on-device Core ML → subtitles. LAN server (if enabled) streams landmarks only — never video pixels.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -94,8 +99,16 @@ struct SettingsSheet: View {
                         }
                         .disabled(recordLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
+                    if session.recorder.targetTakes > 0 {
+                        Text("Takes for \(session.recorder.currentLabel.isEmpty ? recordLabel : session.recorder.currentLabel): \(session.recorder.takesForCurrentLabel)/\(session.recorder.targetTakes)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     Button("Export all clips (JSONL)") {
                         _ = session.recorder.exportJSONL()
+                    }
+                    Button("Export Create ML Hand Action CSV") {
+                        _ = session.recorder.exportCreateMLCSV()
                     }
                     if let url = session.recorder.lastExportURL {
                         Text(url.lastPathComponent)
@@ -103,13 +116,13 @@ struct SettingsSheet: View {
                             .foregroundStyle(.secondary)
                     }
                 } header: {
-                    Text("Landmark training")
+                    Text("Train / Capture (optional adaptation)")
                 } footer: {
-                    Text("Record labeled landmark sequences for Create ML Hand Action / fine-tunes. Clips stay on device in Documents/LandmarkRecordings.")
+                    Text("Optional friend adaptation: pick a gloss, record several takes (hands+face+body+NMM), export JSON/JSONL. Clips stay on-device. Primary accuracy comes from the bundled Core ML model trained offline on public pose data.")
                 }
 
-                Section("Honesty") {
-                    Text("This app streams landmarks like DeepMind SL2T / MediaPipe Holistic architectures. It does **not** include Google’s proprietary SL2T model. Non-manual markers from phone cameras are soft cues — not studio-grade facial grammar tracking. Server accuracy depends on the weights you load (see MODELS.md).")
+                Section("Accuracy & privacy") {
+                    Text("Privacy: captions run on-device (Vision → Core ML). No video/landmarks leave the phone unless you opt into the LAN server. Accuracy: bundled PoseLSTM was trained offline on public WLASL100 pose landmarks (+ synth fill). Friend recordings are optional adaptation. Phone NMMs are soft cues — not studio MoCap. Not Google SL2T; conversational ASL is still unsolved.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

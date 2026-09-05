@@ -30,9 +30,9 @@ struct NMMState: Equatable, Codable {
         ]
     }
 
-    var isQuestionLikely: Bool { browRaise >= 0.45 && confidence >= 0.35 }
-    var isNegationLikely: Bool { (headShake >= 0.45 || frown >= 0.55) && confidence >= 0.3 }
-    var isEmphasisLikely: Bool { abs(torsoLean) >= 0.35 || shoulderTilt >= 0.4 }
+    var isQuestionLikely: Bool { browRaise >= 0.38 && confidence >= 0.28 }
+    var isNegationLikely: Bool { (headShake >= 0.38 || frown >= 0.48) && confidence >= 0.25 }
+    var isEmphasisLikely: Bool { abs(torsoLean) >= 0.28 || shoulderTilt >= 0.32 }
 
     /// Compact badges for debug overlay.
     var activeBadges: [String] {

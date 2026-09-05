@@ -235,69 +235,13 @@
     "THIN",
     "WOMAN"
   ],
+  "input": "poses",
+  "shape": [
+    1,
+    32,
+    170
+  ],
   "val_acc": 0.2544378638267517,
   "test_acc": 0.1666666716337204,
-  "trained_on": "wlasl100-coco135+synth-fill-aug",
-  "top_confusions": [
-    [
-      "AFRICA->CANDY",
-      2
-    ],
-    [
-      "BIRTHDAY->WOMAN",
-      2
-    ],
-    [
-      "BLUE->BOWLING",
-      2
-    ],
-    [
-      "CITY->BOOK",
-      2
-    ],
-    [
-      "COMPUTER->PAPER",
-      2
-    ],
-    [
-      "COMPUTER->FINISH",
-      2
-    ],
-    [
-      "DEAF->CANDY",
-      2
-    ],
-    [
-      "LAST->STUDY",
-      2
-    ],
-    [
-      "SECRETARY->LETTER",
-      2
-    ],
-    [
-      "HEARING->CANDY",
-      2
-    ],
-    [
-      "JACKET->CHAIR",
-      2
-    ],
-    [
-      "LETTER->CHAIR",
-      2
-    ],
-    [
-      "NOW->DECIDE",
-      2
-    ],
-    [
-      "PINK->WHO",
-      2
-    ],
-    [
-      "PURPLE->BOWLING",
-      2
-    ]
-  ]
+  "trained_on": "wlasl100-coco135+synth-fill-aug"
 }

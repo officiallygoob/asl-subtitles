@@ -1,140 +1,89 @@
-# Models — what ships, what to plug in
+# Models — on-device Core ML first
+
+## Privacy first
+
+**Default product path never leaves the iPhone:**
+
+```
+Camera → Vision holistic landmarks → Core ML PoseLSTM → English subtitles
+```
+
+- No video, frames, or landmarks are uploaded by default.
+- `preferRecognitionServer` defaults to **false**.
+- Optional LAN WebSocket server is **dev-only** for experiments.
 
 ## Honesty first
 
-**True open-domain conversational ASL → English is unsolved.** Even strong research systems (Uni-Sign, SignSpeak, DeepMind SL2T demos) are limited by data, domain, and signer variation. This project ships:
+**True open-domain conversational ASL → English is unsolved.** This project ships:
 
-1. A **continuous landmark-streaming architecture** (client → server) ready for better weights.
-2. A **runnable PoseLSTM** (`sign_classifier.pt`) over a ~170+-gloss conversational vocabulary with sliding-window continuous decoding + gloss→English.
-3. Clear documentation of the **Uni-Sign gap** (architecture mismatch) — **not** Google’s proprietary SL2T.
-
-Do **not** claim fluent chat. The practical path is **limited-domain continuous recognition + friend adaptation** (record your friend’s signs, fine-tune).
+1. An **on-device** continuous landmark → Core ML classifier (`ASLSignClassifier.mlpackage`).
+2. Training scripts that convert **public pose dumps** (WLASL100 COCO-135) into our `FEATURE_DIM=170` layout and export Core ML.
+3. Optional friend Capture/Train for adaptation later — **not** the primary accuracy path.
+4. Clear docs that this is **not** Google SL2T.
 
 ## What runs out of the box
 
 | Component | Behavior |
 |-----------|----------|
-| iOS offline fallback | Heuristics (expanded conversational subset + A–Z) via `SignRecognizer` |
-| iOS Core ML plug-in | `CoreMLSignClassifier` loads `ASLSignClassifier.mlmodel(c)` if **you** add it |
-| Server with shipping weights | `sign_classifier.pt` PoseLSTM (~170+ conversational glosses), sliding-window continuous decode |
-| Server without weights | `demo-continuous-v1` heuristic decoder (protocol test) |
-| Uni-Sign `.pth` present | Detected on `/health` as `present-architecture-mismatch` — **not** used for inference |
+| **iOS Core ML (primary)** | Bundled `ASLSignClassifier.mlpackage` — PoseLSTM over hands+face+body+NMM |
+| iOS heuristics | Fallback when Core ML low-confidence / missing |
+| LAN server | Opt-in only; loads `sign_classifier.pt` |
+| Uni-Sign `.pth` | Detected, not inferred (architecture mismatch) |
 
-## Shipping PoseLSTM (`sign_classifier.pt`)
+## Shipping on-device model
 
-- **Input:** 32-frame windows, `FEATURE_DIM=139` (Vision/MediaPipe layout after neck/shoulder normalize).
-- **Arch:** bidirectional LSTM (hidden 192) + MLP head.
-- **Vocab:** conversational glosses in `pipeline/vocab.py` (greetings, questions, everyday needs).
-- **Training data:** synthetic kinematic templates (`scripts/synthesize_pose_dataset.py`) that match our feature layout — **not** real WLASL video. Val accuracy on that synthetic holdout is high; **real-signer accuracy will be much lower** until you fine-tune.
-- **Continuous decode:** longer utterances use sliding windows (stride 10) with consecutive-gloss dedupe → multi-gloss phrases → rule-based English.
+- **Input:** `poses` float32 `[1, 32, 170]` (FEATURE_DIM v2).
+- **Arch:** bidirectional LSTM + **NMM-conditioned temporal attention** + gloss head (+ NMM aux during train).
+- **Training data (offline):** WLASL100 pose HDF5 from [CristianLazoQuispe/pose-action-recognition](https://huggingface.co/datasets/CristianLazoQuispe/pose-action-recognition) (COCO-133+2, MIT packaging of landmarks). Underlying WLASL video rights remain with WLASL (research / C-UDA). We redistribute **converted landmarks + trained weights**, not videos.
+- **Synth fill:** conversational glosses missing from WLASL100 are filled with kinematic templates so HELLO etc. remain in the label set.
+- **Eval (held-out WLASL test + val):** see `server/models/eval_report.json` — roughly **~17–25% top-1** over the mixed 234-class head on real pose holdout (far above chance ~0.4%; far below studio SLR). **Friend-specific data still helps a lot.**
 
-### Enable / rebuild weights
+### Rebuild Core ML (on your Mac/CI with Python)
 
 ```bash
 cd server
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-pip install -r requirements-ml.txt   # torch
-python scripts/synthesize_pose_dataset.py
-python scripts/train_poselstm.py
-uvicorn main:app --host 0.0.0.0 --port 8765
-curl http://127.0.0.1:8765/health   # model: sign_classifier.pt
+pip install -r requirements.txt -r requirements-ml.txt
+pip install h5py coremltools
+# Download WLASL100 pose dumps into server/data/wlasl100/ (see scripts/convert_wlasl_hdf5.py docstring)
+python scripts/convert_wlasl_hdf5.py --mix-synth
+python scripts/train_ondevice_coreml.py
+# writes ASLSubtitles/Models/ASLSignClassifier.mlpackage + server/models/sign_classifier.pt
+python scripts/eval_classifier.py --split test
 ```
 
-Expected checkpoint dict:
+### Optional friend fine-tune
 
-```python
-{
-  "state_dict": <PoseLSTMClassifier state>,
-  "num_classes": 173,
-  "input_dim": 139,
-  "hidden_dim": 192,
-  "labels": ["HELLO", "HI", ...],
-  "trained_on": "synthetic-kinematics-v1",
-}
-```
+1. Settings → Train/Capture → record takes → Export JSONL.
+2. `python scripts/finetune_from_recordings.py --recordings /path/to/LandmarkRecordings`
+3. Re-export Core ML and replace the bundled package.
 
-Place as `server/models/sign_classifier.pt` (or `poselstm.pt`). Restart uvicorn.
+## Public data sources (licenses)
 
-### Fine-tune on real data (recommended)
+| Source | What we use | License notes |
+|--------|-------------|---------------|
+| WLASL100 pose HDF5 (WholeBodyPose packaging) | COCO-135 landmarks → our layout | MIT packaging; cite WholeBodyPose; underlying WLASL is research/C-UDA |
+| Synth kinematics | Fill missing conversational glosses | In-repo |
+| Uni-Sign checkpoints | Research only, not runtime | CC-BY-NC-4.0 |
+| How2Sign / ASL Citizen pose | Documented next; larger downloads | Follow original dataset terms |
 
-1. App **Settings → Landmark training** → record labeled clips of your friend.
-2. Export JSONL from Documents/`LandmarkRecordings`.
-3. Convert exports into the NPZ layout used by `train_poselstm.py` (or extend the trainer to read JSONL).
-4. Retrain and replace `sign_classifier.pt`.
+**Next data:** ASL Citizen 100/300 pose HDF5 and How2Sign MediaPipe landmark shards for continuous SLT pretrain — convert with the same COCO-135 mapper when disk/time allow.
 
-Friend-adapted weights beat both the shipping synthetic model and the demo heuristics for real conversations.
+## Feature layout
 
-## Uni-Sign (research checkpoint — not the runtime path)
+`FEATURE_DIM = 170`: left/right hands 42+42, body 34, face 40, activity 1, NMM 11.
 
-- Paper: Uni-Sign (ICLR 2025)
-- Weights: https://huggingface.co/ZechengLi19/Uni-Sign (CC-BY-NC-4.0)
-- Code: https://github.com/ZechengLi19/Uni-Sign
-
-### Why it doesn’t auto-load
-
-Uni-Sign pose-only checkpoints expect **69 RTMPose whole-body keypoints**, Spatial **GCN** pose encoders, temporal encoders, and an **LLM** text head. Our iOS client streams **Vision holistic landmarks** packed as **139-d** features into a **PoseLSTM**. Bridging that gap means re-implementing (or vendoring) Uni-Sign’s full stack + remapping keypoints — not a drop-in `.load_state_dict`.
-
-`wlasl_pose_only_islr.pth` alone is ~1.1 GB.
-
-### Download for research / future adapter work
-
-```bash
-cd server
-./scripts/download_uni_sign.sh
-# fetches wlasl_pose_only_islr.pth into server/models/
-```
-
-| File | Task |
-|------|------|
-| `wlasl_pose_only_islr.pth` | Isolated sign recognition (WLASL) |
-| `how2sign_pose_only_slt.pth` | Continuous SLT (How2Sign, large) |
-| `openasl_pose_only_slt.pth` | OpenASL continuous SLT |
-
-`/health` reports `uni_sign.status = present-architecture-mismatch` when a `.pth` is on disk. Inference stays on PoseLSTM / demo.
-
-**Sign-Speak is enterprise-only** — do not block on it. This is **not** Google SL2T.
-
-## Create ML / friend adaptation (highest leverage on-device)
-
-1. In the app **Settings → Landmark training**, record labeled clips of your friend.
-2. Export JSON / JSONL from Documents/`LandmarkRecordings`.
-3. Train a Create ML **Hand Action** classifier (or fine-tune the server PoseLSTM).
-4. Drop the model into the app bundle or Documents as `ASLSignClassifier.mlmodel`.
-5. `CoreMLSignClassifier` picks it up automatically; heuristics only fill gaps.
-
-## Feature layout (server)
-
-`FEATURE_DIM = 139` per frame:
-
-- Left hand 21×2, right hand 21×2
-- Body 17×2, face 10×2
-- Activity scalar
-
-Normalization: subtract neck/hand origin, scale by shoulder width (`pipeline/normalize.py`).
-
-## Optional gloss → English LLM
-
-```bash
-export ASL_GLOSS_LLM_CMD='ollama run llama3.2'
-```
-
-Rule-based `gloss_to_english` always runs (phrase table + stitching); LLM is an optional local hook (no cloud keys in-repo).
-
-## Accuracy expectations (honest)
+## Accuracy expectations
 
 | Setup | Expectation |
 |-------|-------------|
-| Shipping PoseLSTM, unseen real signer | Limited-domain; many confusions; useful for protocol + coarse phrases |
-| PoseLSTM fine-tuned on your friend | Best practical path for real conversation |
-| Demo heuristics | Protocol test only |
-| Uni-Sign `.pth` without adapter | Does not run here |
+| Bundled Core ML, unseen signer | Limited-domain; many confusions; better than heuristics on covered glosses |
+| Core ML + friend fine-tune | Best practical path for *their* signing |
 | Open-domain fluent chat | Unsolved |
 
-## Roadmap toward better accuracy
+## Roadmap
 
-1. Fine-tune PoseLSTM on LandmarkRecorder / public WLASL MediaPipe pose sets
-2. Optional Uni-Sign runtime via vendored GCN+LLM + RTMPose remap (large effort)
-3. CTC / autoregressive continuous decoding (not only sliding ISLR windows)
-4. Stronger facial grammar features (roles, questions, negation)
-5. On-device Core ML export of the server model for offline continuous mode
+1. Larger public pose pretrain (ASL Citizen / How2Sign landmarks)
+2. Stronger continuous decoding (CTC / transducer), not only sliding ISLR
+3. On-device quantization / ANE tuning
+4. Richer facial grammar beyond soft NMM proxies

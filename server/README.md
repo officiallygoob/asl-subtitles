@@ -2,7 +2,9 @@
 
 FastAPI service that accepts **landmark geometry only** (hands / body / face) and returns gloss + English.
 
-> **Honesty:** open-domain conversational ASL→English is an unsolved research problem. This server ships a **limited-domain continuous recognition** pipeline plus a clean plug-in path for Uni-Sign / PoseLSTM weights. It is **not** Google DeepMind SL2T.
+> **Product default is on-device Core ML** (see root MODELS.md). This server is **optional / LAN debug**.
+>
+> **Honesty:** open-domain conversational ASL→English is unsolved. PoseLSTM here mirrors the on-device model. Not Google SL2T.
 
 ## Privacy
 
@@ -75,6 +77,16 @@ Without weights, a **demo continuous decoder** runs so Conversation Mode works e
 
 ```bash
 python eval_demo.py samples/example_sequence.json
+python scripts/eval_classifier.py --split test
+```
+
+## Train from public pose dumps → Core ML
+
+```bash
+pip install -r requirements-ml.txt h5py coremltools
+# place WLASL100 HDF5 under data/wlasl100/
+python scripts/convert_wlasl_hdf5.py --mix-synth
+python scripts/train_ondevice_coreml.py
 ```
 
 ## Optional gloss→English LLM

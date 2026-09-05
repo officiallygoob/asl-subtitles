@@ -10,9 +10,9 @@ from __future__ import annotations
 class UtteranceSegmenter:
     def __init__(
         self,
-        rest_threshold: float = 0.08,
-        rest_duration: float = 0.45,
-        min_utterance: float = 0.35,
+        rest_threshold: float = 0.055,
+        rest_duration: float = 0.75,
+        min_utterance: float = 0.50,
     ) -> None:
         self.rest_threshold = rest_threshold
         self.rest_duration = rest_duration
