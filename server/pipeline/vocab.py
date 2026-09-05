@@ -10,27 +10,47 @@ from __future__ import annotations
 CONVERSATION_GLOSSES: list[str] = [
     # Greetings / closings
     "HELLO", "HI", "BYE", "SEE", "LATER", "GOOD-MORNING", "GOOD-NIGHT",
+    "WELCOME", "NICE", "MEET",
     # Politeness
     "THANKS", "PLEASE", "SORRY", "EXCUSE",
     # Pronouns / people
     "ME", "YOU", "WE", "THEY", "MY", "YOUR", "NAME", "FRIEND", "FAMILY",
+    "MOTHER", "FATHER", "SISTER", "BROTHER", "BABY", "PERSON",
+    "DEAF", "HEARING",
     # Questions
     "WHAT", "WHERE", "WHEN", "WHO", "WHY", "HOW", "WHICH",
     # Answers / stance
-    "YES", "NO", "OK", "MAYBE", "TRUE", "FALSE",
+    "YES", "NO", "OK", "MAYBE", "TRUE", "FALSE", "RIGHT", "WRONG",
     # Evaluative
     "GOOD", "BAD", "FINE", "GREAT", "MORE", "LESS", "SAME", "DIFFERENT",
+    "BIG", "SMALL", "NEW", "OLD",
     # Need / action
     "WANT", "NEED", "HELP", "UNDERSTAND", "KNOW", "DONT-KNOW", "LIKE", "LOVE",
     "GO", "COME", "STOP", "WAIT", "AGAIN", "SLOW", "FAST",
-    # Everyday
-    "EAT", "DRINK", "HOME", "WORK", "SCHOOL", "TIME", "TODAY", "TOMORROW",
-    "HUNGRY", "TIRED", "HAPPY", "SAD", "HOT", "COLD",
+    "GIVE", "TAKE", "HAVE", "MAKE", "THINK", "FEEL", "REMEMBER", "FORGET",
+    "TELL", "ASK", "CALL", "LEAVE", "STAY", "PLAY", "READ",
+    "WORK", "LOOK", "SPELL", "WRITE", "SIGN",
+    # Everyday / food / body
+    "EAT", "DRINK", "FOOD", "WATER", "COFFEE", "HUNGRY", "THIRSTY",
+    "HOME", "SCHOOL", "STORE", "HOSPITAL", "BATHROOM", "OUTSIDE", "INSIDE",
+    "HERE", "THERE", "CITY",
+    "TIME", "TODAY", "TOMORROW", "YESTERDAY", "NOW", "MORNING", "NIGHT",
+    "WEEK", "MONTH", "YEAR",
+    "HAPPY", "SAD", "TIRED", "HOT", "COLD", "ANGRY", "SCARED", "SICK", "HURT",
+    # Numbers
+    "ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN",
+    # Social / tech / misc conversational
+    "PHONE", "TEXT", "EMAIL", "MONEY", "BUY", "BUSY", "READY", "IMPORTANT",
+    "PROBLEM", "QUESTION", "ANSWER", "IDEA",
+    "CAR", "BUS", "WALK", "SLEEP", "BOOK",
+    "RED", "BLUE", "GREEN", "BLACK", "WHITE",
+    "RAIN", "SUN", "WEATHER",
+    "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY",
     # Conversation repair
-    "AGAIN", "SPELL", "WRITE", "LOOK",
+    "SPELL", "WRITE", "LOOK", "ENGLISH", "ASL",
 ]
 
-# Deduplicate while preserving order (AGAIN listed twice above by design)
+
 def unique_glosses() -> list[str]:
     seen: set[str] = set()
     out: list[str] = []

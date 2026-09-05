@@ -55,7 +55,7 @@ struct ConversationView: View {
                 .frame(maxHeight: .infinity)
 
                 conversationPanel
-                    .frame(height: 280)
+                    .frame(minHeight: 300, idealHeight: 340, maxHeight: 420)
             }
             .ignoresSafeArea(edges: .top)
 
@@ -118,10 +118,19 @@ struct ConversationView: View {
     }
 
     private var liveSigningCaption: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        let persistent = session.persistentSigningTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
+        let current = session.currentSigningWord.trimmingCharacters(in: .whitespacesAndNewlines)
+        let showCurrentSeparately: Bool = {
+            guard !current.isEmpty else { return false }
+            let last = persistent.split(separator: " ").last.map(String.init) ?? ""
+            return last.compare(current, options: [.caseInsensitive, .diacriticInsensitive]) != .orderedSame
+        }()
+        let isIdle = persistent.isEmpty && current.isEmpty
+
+        return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: "hands.and.sparkles.fill")
-                Text("Signing")
+                Text("Signing transcript")
                     .fontWeight(.semibold)
                 Spacer()
                 if !session.partialGloss.isEmpty {
@@ -134,13 +143,30 @@ struct ConversationView: View {
             .font(.caption)
             .foregroundStyle(.cyan)
 
-            Text(session.liveSigningText.isEmpty ? "Watching for signs…" : session.liveSigningText)
-                .font(.title2.weight(.bold))
-                .dynamicTypeSize(...DynamicTypeSize.accessibility2)
-                .foregroundStyle(.white)
-                .minimumScaleFactor(0.6)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 4) {
+                    if isIdle {
+                        Text("Watching for signs…")
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(.white.opacity(0.55))
+                    } else {
+                        (
+                            Text(persistent.isEmpty ? "" : persistent)
+                                .font(.title2.weight(.bold))
+                                .foregroundStyle(.white)
+                            + Text(showCurrentSeparately ? (persistent.isEmpty ? current + "…" : " " + current + "…") : "")
+                                .font(.title2.weight(.semibold).italic())
+                                .foregroundStyle(.white.opacity(0.55))
+                        )
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .opacity(session.liveSigningText.isEmpty ? 0.55 : max(0.45, session.subtitleConfidence + 0.3))
+            }
+            .frame(maxHeight: 120)
         }
         .padding(14)
         .background(
@@ -151,7 +177,7 @@ struct ConversationView: View {
                         .strokeBorder(Color.cyan.opacity(0.35), lineWidth: 1)
                 )
         )
-        .accessibilityLabel("Signing caption: \(session.liveSigningText)")
+        .accessibilityLabel("Signing transcript: \(session.captionDisplayText)")
     }
 
     private var conversationPanel: some View {

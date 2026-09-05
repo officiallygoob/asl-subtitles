@@ -5,7 +5,7 @@
 **True open-domain conversational ASL → English is unsolved.** Even strong research systems (Uni-Sign, SignSpeak, DeepMind SL2T demos) are limited by data, domain, and signer variation. This project ships:
 
 1. A **continuous landmark-streaming architecture** (client → server) ready for better weights.
-2. A **runnable PoseLSTM** (`sign_classifier.pt`) over a ~73-gloss conversational vocabulary with sliding-window continuous decoding + gloss→English.
+2. A **runnable PoseLSTM** (`sign_classifier.pt`) over a ~170+-gloss conversational vocabulary with sliding-window continuous decoding + gloss→English.
 3. Clear documentation of the **Uni-Sign gap** (architecture mismatch) — **not** Google’s proprietary SL2T.
 
 Do **not** claim fluent chat. The practical path is **limited-domain continuous recognition + friend adaptation** (record your friend’s signs, fine-tune).
@@ -14,9 +14,9 @@ Do **not** claim fluent chat. The practical path is **limited-domain continuous 
 
 | Component | Behavior |
 |-----------|----------|
-| iOS offline fallback | Heuristics (~20 glosses + A–Z) via `SignRecognizer` |
+| iOS offline fallback | Heuristics (expanded conversational subset + A–Z) via `SignRecognizer` |
 | iOS Core ML plug-in | `CoreMLSignClassifier` loads `ASLSignClassifier.mlmodel(c)` if **you** add it |
-| Server with shipping weights | `sign_classifier.pt` PoseLSTM (~73 conversational glosses), sliding-window continuous decode |
+| Server with shipping weights | `sign_classifier.pt` PoseLSTM (~170+ conversational glosses), sliding-window continuous decode |
 | Server without weights | `demo-continuous-v1` heuristic decoder (protocol test) |
 | Uni-Sign `.pth` present | Detected on `/health` as `present-architecture-mismatch` — **not** used for inference |
 
@@ -46,7 +46,7 @@ Expected checkpoint dict:
 ```python
 {
   "state_dict": <PoseLSTMClassifier state>,
-  "num_classes": 73,
+  "num_classes": 173,
   "input_dim": 139,
   "hidden_dim": 192,
   "labels": ["HELLO", "HI", ...],

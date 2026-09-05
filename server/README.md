@@ -54,7 +54,7 @@ Health check: `curl http://127.0.0.1:8765/health`
 
 See root [`MODELS.md`](../MODELS.md).
 
-**Shipping default:** `models/sign_classifier.pt` (PoseLSTM, ~73 conversational glosses, synthetic pretrain).
+**Shipping default:** `models/sign_classifier.pt` (PoseLSTM, ~170+ conversational glosses, synthetic pretrain).
 
 Also supported:
 

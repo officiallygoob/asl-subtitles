@@ -89,6 +89,12 @@ final class RecognitionClient: ObservableObject {
     /// Offline fallback recognizer (heuristics) — not the primary path.
     private let offlineRecognizer = SignRecognizer()
     private let offlineSmoother = TemporalSmoother()
+    /// Last gloss committed via onFinalSentence on the offline path.
+    private var lastEmittedFinalLabel: String = ""
+    /// Consecutive empty smoother frames — used to allow re-signing the same word.
+    private var offlineEmptyStreak: Int = 0
+    private let offlineFinalConfidence: Double = 0.65
+    private let offlineEmptyClearThreshold: Int = 8
 
     var onFinalSentence: ((String, Double) -> Void)?
     var onPartialUpdate: ((String, [String], Double) -> Void)?
@@ -151,6 +157,8 @@ final class RecognitionClient: ObservableObject {
     func resetOffline() {
         offlineRecognizer.reset()
         offlineSmoother.reset()
+        lastEmittedFinalLabel = ""
+        offlineEmptyStreak = 0
     }
 
     /// Stream one landmark frame (primary path when connected).
@@ -199,8 +207,24 @@ final class RecognitionClient: ObservableObject {
         partialGloss = smoothed.text.isEmpty ? [] : [smoothed.text.lowercased()]
         lastConfidence = smoothed.confidence
         onPartialUpdate?(partialEnglish, partialGloss, lastConfidence)
-        if !smoothed.isEmpty, smoothed.confidence >= 0.7 {
-            // Heuristics emit single glosses; treat stable labels as soft finals.
+
+        if smoothed.isEmpty {
+            offlineEmptyStreak += 1
+            if offlineEmptyStreak >= offlineEmptyClearThreshold {
+                // Gap long enough that the same word can be signed again later.
+                lastEmittedFinalLabel = ""
+            }
+            return
+        }
+
+        offlineEmptyStreak = 0
+        let text = smoothed.text
+        let conf = smoothed.confidence
+        let different = text.compare(lastEmittedFinalLabel, options: [.caseInsensitive, .diacriticInsensitive]) != .orderedSame
+        if conf >= offlineFinalConfidence, !text.isEmpty, different {
+            lastFinalEnglish = text
+            lastEmittedFinalLabel = text
+            onFinalSentence?(text, conf)
         }
     }
 

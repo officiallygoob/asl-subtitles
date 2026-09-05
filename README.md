@@ -72,16 +72,27 @@ On a physical iPhone, set **Settings → Continuous recognition** to
 
 | Area | Implementation |
 |----------------------|
-| Conversation Mode | Signing captions + speech transcript + scroll history |
+| Conversation Mode | Persistent signing transcript + live word + speech + history |
 | Holistic landmarks | Vision hand pose + body pose + face landmarks → `LandmarkFrame` |
 | Temporal buffer | ~36 frames (~1–2 s) + pause/rest utterance segmentation |
 | Streaming client | WebSocket landmark protocol (`RecognitionClient`) |
 | Speech → text | `SFSpeechRecognizer` reverse channel |
 | Offline fallback | Heuristics + optional `CoreMLSignClassifier` |
 | LandmarkRecorder | Export labeled JSON/JSONL for Create ML / fine-tunes |
-| Server | FastAPI WS + REST, shipping PoseLSTM (~73 glosses), gloss→English, Docker |
+| Server | FastAPI WS + REST, shipping PoseLSTM (~170+ conversational glosses), gloss→English, Docker |
+
+## Vocabulary (honest split)
+
+| Layer | What it covers |
+|-------|----------------|
+| **Offline heuristics** | Letters A–Z plus a **conversational subset** (greetings, courtesy, pronouns, questions, common verbs, numbers 1–5/10, food/feelings/time/places approximations). Tuned for clear single-hand / two-hand templates — not fluent ASL. |
+| **Continuous PoseLSTM (server)** | Broader **friend-chat gloss list** (family, days, colors, places, verbs, social/tech, etc. — 170+ tokens). Trained on synthetic kinematics so it has a real decision surface over our feature layout; still weaker than real signer data. |
+| **Friend adaptation** | `LandmarkRecorder` → Create ML / fine-tune remains the path for **their** dialect and the signs heuristics can’t approximate (“Needs ML” in the in-app vocabulary sheet). |
+
+Empty detection gaps **no longer wipe** prior signing text: Conversation Mode keeps a persistent transcript until **Clear**.
 
 ## Friend adaptation (recommended next step)
+
 
 1. Settings → **Landmark training** → record labeled glosses with your friend.
 2. Export JSONL → train Create ML Hand Action (or fine-tune server weights).
@@ -91,9 +102,9 @@ Details: [`MODELS.md`](MODELS.md) · server: [`server/README.md`](server/README.
 
 ## Limitations
 
-- Not an interpreter. Limited gloss domain until you add weights / friend data.
+- Not an interpreter. Heuristics = subset; server = larger limited domain; friend data still required for reliability.
 - Ambiguous fingerspelling and facial grammar remain hard.
-- Server ships `sign_classifier.pt` (PoseLSTM on synthetic kinematics) — better than heuristics, still limited vs real signers; fine-tune on friend data (see MODELS.md).
+- Server ships `sign_classifier.pt` (PoseLSTM on synthetic kinematics over 170+ glosses) — better coverage than heuristics, still limited vs real signers; fine-tune on friend data (see MODELS.md).
 - Uni-Sign `.pth` is research-only here (architecture mismatch); not Google SL2T.
 - Simulator has no real camera/hands; use a device.
 

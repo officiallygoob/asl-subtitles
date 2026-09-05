@@ -7,7 +7,7 @@ struct VocabularySheet: View {
         NavigationStack {
             List {
                 Section {
-                    Text("Starter MVP vocabulary — heuristic recognition from hand landmarks. Not fluent ASL. Results work best with clear lighting and the signing hand filling much of the frame.")
+                    Text("Offline heuristics cover a conversational subset (~\(VocabularyCatalog.heuristicCount) entries including letters). The continuous PoseLSTM targets a larger gloss set. Friend-specific LandmarkRecorder remains the best path for their dialect. Signs marked “Needs ML” are listed for the server / training — not reliable offline.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -16,8 +16,18 @@ struct VocabularySheet: View {
                     Section(category.rawValue) {
                         ForEach(entries) { entry in
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(entry.word)
-                                    .font(.headline)
+                                HStack {
+                                    Text(entry.word)
+                                        .font(.headline)
+                                    if !entry.heuristicSupported {
+                                        Text("Needs ML")
+                                            .font(.caption2.weight(.semibold))
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(Color.orange.opacity(0.25), in: Capsule())
+                                            .foregroundStyle(.orange)
+                                    }
+                                }
                                 Text(entry.tip)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)

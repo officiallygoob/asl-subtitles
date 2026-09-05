@@ -18,6 +18,11 @@ final class ASLSessionController: NSObject, ObservableObject {
     @Published var latestFaceJoints: [LandmarkFrame.SerializedJoint] = []
     @Published var lastErrorMessage: String?
     @Published var history: [ConversationTurn] = []
+    /// Accumulating English transcript for the signing side (persists across empty gaps).
+    @Published var persistentSigningTranscript: String = ""
+    /// In-progress / live word from the recognizer (may clear when detection fades).
+    @Published var currentSigningWord: String = ""
+    /// Legacy single-slot caption; kept in sync with current word for older call sites.
     @Published var liveSigningText: String = ""
     @Published var partialGloss: [String] = []
     @Published var speechEnabled: Bool = true
@@ -38,6 +43,23 @@ final class ASLSessionController: NSObject, ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     var captureSession: AVCaptureSession { camera.session }
+
+    /// Caption area: persistent transcript + optional in-progress word when not already at the end.
+    var captionDisplayText: String {
+        let persistent = persistentSigningTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
+        let current = currentSigningWord.trimmingCharacters(in: .whitespacesAndNewlines)
+        if persistent.isEmpty {
+            return current
+        }
+        if current.isEmpty {
+            return persistent
+        }
+        let lastToken = persistent.split(separator: " ").last.map(String.init) ?? ""
+        if lastToken.compare(current, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame {
+            return persistent
+        }
+        return persistent + " " + current
+    }
 
     func prepare() {
         permissionStatus = AVCaptureDevice.authorizationStatus(for: .video)
@@ -60,11 +82,14 @@ final class ASLSessionController: NSObject, ObservableObject {
         }
         recognition.onPartialUpdate = { [weak self] english, gloss, confidence in
             guard let self else { return }
-            self.liveSigningText = english
+            let trimmed = english.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Never wipe the persistent transcript when live detection goes empty.
+            self.currentSigningWord = trimmed
+            self.liveSigningText = trimmed
             self.partialGloss = gloss
-            self.smoothedSubtitle = english
+            self.smoothedSubtitle = trimmed
             self.subtitleConfidence = confidence
-            self.isWatchingEmpty = english.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            self.isWatchingEmpty = self.persistentSigningTranscript.isEmpty && trimmed.isEmpty
         }
         speech.onFinalUtterance = { [weak self] text in
             self?.appendSpeakingFinal(text: text)
@@ -145,14 +170,39 @@ final class ASLSessionController: NSObject, ObservableObject {
     func clearHistory() {
         history.removeAll()
         liveSigningText = ""
+        persistentSigningTranscript = ""
+        currentSigningWord = ""
         partialGloss = []
+        smoothedSubtitle = ""
+        subtitleConfidence = 0
+        isWatchingEmpty = true
     }
 
     private func appendSigningFinal(text: String, gloss: [String], confidence: Double) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        if let last = history.last, last.role == .signing, last.text == trimmed { return }
+
+        // Append to persistent transcript (space-separated; avoid duplicating exact last token).
+        let lastToken = persistentSigningTranscript
+            .split(separator: " ")
+            .last
+            .map(String.init) ?? ""
+        if lastToken.compare(trimmed, options: [.caseInsensitive, .diacriticInsensitive]) != .orderedSame {
+            if persistentSigningTranscript.isEmpty {
+                persistentSigningTranscript = trimmed
+            } else {
+                persistentSigningTranscript += " " + trimmed
+            }
+        }
+
+        // History bubble: skip exact duplicate consecutive signing turn.
+        if let last = history.last, last.role == .signing, last.text == trimmed {
+            currentSigningWord = trimmed
+            liveSigningText = trimmed
+            return
+        }
         history.append(ConversationTurn(role: .signing, text: trimmed, gloss: gloss, confidence: confidence))
+        currentSigningWord = trimmed
         liveSigningText = trimmed
     }
 
