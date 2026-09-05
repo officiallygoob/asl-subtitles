@@ -1,178 +1,74 @@
 {
-  "val_top1": 0.328125,
-  "val_top5": 0.608593761920929,
-  "test_top1": 0.24657534062862396,
-  "test_top5": 0.5077940225601196,
+  "val_top1": 0.33203125,
+  "val_top5": 0.606249988079071,
+  "test_top1": 0.23760037124156952,
+  "test_top5": 0.49740198254585266,
   "n_classes": 243,
-  "n_train": 27741,
-  "n_train_raw": 6585,
-  "n_val": 1280,
-  "n_test": 2117,
-  "top_confusions": [
-    [
-      "FOOD->DEAF",
-      8
-    ],
-    [
-      "FOOD->THINK",
-      8
-    ],
-    [
-      "WHO->DOG",
-      7
-    ],
-    [
-      "WHY->CHRISTMAS",
-      7
-    ],
-    [
-      "HEARING->APPLE",
-      5
-    ],
-    [
-      "ASK->DEAF",
-      5
-    ],
-    [
-      "FOOD->CHRISTMAS",
-      5
-    ],
-    [
-      "FOUR->EAT",
-      5
-    ],
-    [
-      "WHY->LATER",
-      5
-    ],
-    [
-      "BUT->DIFFERENT",
-      4
-    ],
-    [
-      "THIN->MAN",
-      4
-    ],
-    [
-      "MANY->WANT",
-      4
-    ],
-    [
-      "MONEY->EMAIL",
-      4
-    ],
-    [
-      "MONEY->DEAF",
-      4
-    ],
-    [
-      "SPELL->MOTHER",
-      4
-    ]
-  ],
   "trained_on": "aslcitizen300+synth+wlasl100+wlasl300",
-  "arch": "tcn-bilstm-nmm",
-  "aug": "heavy mirror/speed/noise/shift/dropout x4",
-  "class_balancing": "WeightedRandomSampler + CE class weights",
+  "arch": "tcn-bilstm-nmm-weighted-ens3",
   "wlasl100_subset": {
-    "val_top1": 0.4201183319091797,
-    "val_top5": 0.6715976595878601,
+    "val_top1": 0.43195265531539917,
+    "val_top5": 0.6804733872413635,
     "n_val": 338,
-    "test_top1": 0.41860464215278625,
-    "test_top5": 0.682170569896698,
+    "test_top1": 0.43410852551460266,
+    "test_top5": 0.6860465407371521,
     "n_test": 258,
-    "method": "single seed=29 best-on-wlasl100-val checkpoint"
+    "ensemble": true,
+    "n_members": 3,
+    "weights": [
+      0.1,
+      0.585,
+      0.315
+    ],
+    "method": "val-tuned weighted logit ensemble (ship+s7+ftseed7)"
   },
-  "previous": {
-    "val_top1": 0.2574,
-    "test_top1": 0.2093,
-    "n_classes": 234,
-    "trained_on": "synth+wlasl100+wlasl300"
-  },
-  "delta_vs_previous_wlasl100_test_pp": 20.930464215278626,
-  "privacy": "offline public pose train; on-device Core ML inference; preferServer=false",
-  "history_tail": [
-    {
-      "epoch": 36,
-      "loss": 1.4975048483271058,
-      "val_top1": 0.31640625,
-      "test_top1": 0.2607463300228119
-    },
-    {
-      "epoch": 37,
-      "loss": 1.4923949645749124,
-      "val_top1": 0.32499998807907104,
-      "test_top1": 0.2560226619243622
-    },
-    {
-      "epoch": 38,
-      "loss": 1.5303227126067651,
-      "val_top1": 0.32343751192092896,
-      "test_top1": 0.25838449597358704
-    },
-    {
-      "epoch": 39,
-      "loss": 1.5132568687235999,
-      "val_top1": 0.3179687559604645,
-      "test_top1": 0.2512989938259125
-    },
-    {
-      "epoch": 40,
-      "loss": 1.4733716722504355,
-      "val_top1": 0.32109373807907104,
-      "test_top1": 0.25791212916374207
-    }
-  ],
-  "window": 32,
-  "gloss_map": true,
-  "mixup": 0.2,
-  "distill": true,
   "comparable_wlasl100": {
-    "val_top1": 0.4201183319091797,
-    "val_top5": 0.6715976595878601,
+    "val_top1": 0.43195265531539917,
+    "val_top5": 0.6804733872413635,
     "n_val": 338,
-    "test_top1": 0.41860464215278625,
-    "test_top5": 0.682170569896698,
+    "test_top1": 0.43410852551460266,
+    "test_top5": 0.6860465407371521,
     "n_test": 258,
-    "method": "single seed=29 best-on-wlasl100-val checkpoint"
+    "method": "val-tuned weighted logit ensemble n=3"
   },
   "previous_ship": {
-    "val_top1": 0.3757,
-    "test_top1": 0.3411,
-    "test_top5": 0.6163,
-    "n_classes": 240,
-    "commit": "132f263"
+    "val_top1": 0.4201,
+    "test_top1": 0.4186,
+    "test_top5": 0.6822,
+    "n_classes": 243,
+    "commit": "c49c751"
   },
-  "wlasl100_boost": 2.75,
-  "real_boost": 1.45,
-  "swa_start": 30,
-  "finetune_wlasl100_epochs": 12,
-  "finetune_lr": 0.0001,
+  "delta_vs_c49c751_wlasl100_test_pp": 1.5508525514602634,
   "bigram_tune_wlasl100_val": {
-    "plain_top1": 0.42011834319526625,
-    "bigram_gold_prev_top1": 0.4940828402366864,
-    "bigram_chain_top1": 0.44970414201183434,
+    "plain_top1": 0.4319526627218935,
+    "bigram_gold_prev_top1": 0.514792899408284,
+    "bigram_chain_top1": 0.45857988165680474,
     "n": 338,
-    "prior_weight": 0.4,
-    "k": 5
-  },
-  "bigram_test": {
-    "plain_top1": 0.2465753424657534,
-    "bigram_gold_prev_top1": 0.41615493623051486,
-    "bigram_chain_top1": 0.2730278696268304,
-    "n": 2117,
-    "prior_weight": 0.4,
+    "prior_weight": 0.5,
     "k": 5
   },
   "bigram_wlasl100_test": {
-    "plain_top1": 0.4186046511627907,
-    "bigram_gold_prev_top1": 0.5,
+    "plain_top1": 0.43410852713178294,
+    "bigram_gold_prev_top1": 0.5077519379844961,
     "bigram_chain_top1": 0.437984496124031,
     "n": 258,
-    "prior_weight": 0.4,
+    "prior_weight": 0.5,
     "k": 5
   },
-  "delta_vs_132f263_wlasl100_test_pp": 7.750464215278624,
-  "seed": 29,
-  "notes": "Full head=243 (Citizen300+WLASL, no MSASL). seed=29 TCN-BiLSTM distill+boosts+WLASL finetune. Comparable WLASL100 holdout test 41.9% vs 34.1% @132f263 (+7.8pp). Bigram chain 43.8%. preferServer=false. Still not conversational."
+  "ensemble_members": [
+    "models/sign_classifier_c49c751_41p9.pt",
+    "models/sign_classifier_s7.pt",
+    "models/sign_classifier_ftseed7.pt"
+  ],
+  "ensemble_weights": [
+    0.1,
+    0.585,
+    0.315
+  ],
+  "privacy": "offline public pose train; on-device Core ML inference; preferServer=false",
+  "synth_boost": 0.55,
+  "wlasl100_boost": 3.0,
+  "citizen_overlap_boost": 1.3,
+  "notes": "Weighted ens3 (c49c751 ship + scratch-seed7 + short-FT-seed7). Comparable WLASL100 holdout plain top-1 43.4% vs 41.9% @c49c751 (+1.6pp). Still not conversational. preferServer=false.",
+  "seed": "ens-weighted"
 }

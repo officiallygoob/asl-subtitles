@@ -148,6 +148,18 @@ SYNONYM_MAP: dict[str, str] = {
     "WIFE": "FAMILY",
     "BEAUTIFUL": "NICE",
     "DAY": "TODAY",
+    "TOMORROW-MORNING": "TOMORROW",
+    "YESTERDAY-NIGHT": "YESTERDAY",
+    "GOODMORNING": "GOOD-MORNING",
+    "GOODNIGHT": "GOOD-NIGHT",
+    "HOW-ARE-YOU": "HOW",
+    "HOWAREYOU": "HOW",
+    "DONTKNOW": "DONT-KNOW",
+    "DON'T-KNOW": "DONT-KNOW",
+    "DONTUNDERSTAND": "DONT-KNOW",
+    "I-LOVE-YOU": "LOVE",
+    "ILY": "LOVE",
+    "BIRTHDAY-CAKE": "BIRTHDAY",
 }
 
 _SENSE_RE = re.compile(r"^(.*?)(\d+)$")

@@ -37,7 +37,7 @@ Camera → Vision holistic landmarks → Core ML PoseLSTM/TCN → English subtit
 
 - **Input:** `poses` float32 `[1, 32, 170]` (FEATURE_DIM v2).
 - **Arch:** temporal conv front-end + bidirectional LSTM + **NMM-conditioned temporal attention** + gloss head (+ NMM aux during train).
-- **Training levers this round:** expanded `gloss_map` synonyms; first-class Citizen glosses (`ABOUT`, `AND`, `BOY`, `GIRL`, `MOVIE`, `PARTY`, `CHRISTMAS`, `HALLOWEEN`, `YELLOW`); pose **mixup**; teacher→student **distill**; WLASL100/real **sample boosts**; **WLASL100/300 fine-tune**; SWA check; warmup+cosine; heavy aug; on-device bigram prior (val-tuned weight).
+- **Training levers this round:** synth downweight + Citizen-overlap / WLASL300 boosts; pose **mixup**; distill from prior ship; WLASL100 fine-tune (+Citizen overlap); **val-tuned weighted logit ensemble → one Core ML**; dual-scale TCN v2 available (`tcn2-bilstm`); SWA; bigram prior (val-tuned weight).
 - **Training data (offline):** public pose HDF5 from [CristianLazoQuispe/pose-action-recognition](https://huggingface.co/datasets/CristianLazoQuispe/pose-action-recognition) (MIT packaging of landmarks):
   - WLASL100 + overlapping WLASL300 clips
   - **ASL Citizen 300** via gloss map + first-class conversational labels (**no MSASL** — diluted the holdout)
@@ -47,20 +47,20 @@ Camera → Vision holistic landmarks → Core ML PoseLSTM/TCN → English subtit
 
 ### Comparable WLASL100 holdout (full head)
 
-| Split | Prior ship (132f263) | **Now** top-1 | **Now** top-5 |
+| Split | Prior ship (c49c751) | **Now** top-1 | **Now** top-5 |
 |-------|----------------------|---------------|---------------|
-| Val (WLASL100) | 37.6% | **42.0%** | **67.2%** |
-| Test (WLASL100) | 34.1% | **41.9%** | **68.2%** |
+| Val (WLASL100) | 42.0% | **43.2%** | **68.0%** |
+| Test (WLASL100) | 41.9% | **43.4%** | **68.6%** |
 
-243-class full head. **+7.8 pp test top-1** vs 132f263 — **≥40%** comparable holdout; still far from usable conversation.
+243-class full head. **Plain top-1 43.4%** vs 41.9% @c49c751 (**+1.5 pp**). Val-tuned weighted ensemble of 3 TCN-BiLSTM students → single Core ML. Still well short of ≥50% / conversation.
 
-Bigram top-5 rerank (same WLASL100 test, on-device prior): plain 41.9% → chain **43.8%** (gold-prev oracle upper **50.0%**).
+Bigram top-5 rerank (same WLASL100 test, on-device prior): plain 43.4% → chain **43.8%** (gold-prev oracle upper **50.8%**).
 
 ### Dual daily CORE30 head
 
 | Head | Classes | Metric | top-1 | top-5 |
 |------|---------|--------|-------|-------|
-| Full (ships as primary) | 243 | WLASL100 holdout | **41.9%** | **68.2%** |
+| Full (ships as primary) | 243 | WLASL100 holdout | **43.4%** | **68.6%** |
 | Daily CORE30 (ships dual) | 30 | own val / own test | **46.3%** / **36.8%** | 74.6% / **76.3%** |
 | Daily CORE30 + bigram | 30 | own test chain / gold-prev | 39.8% / **60.2%** | — |
 
@@ -77,9 +77,12 @@ pip install h5py coremltools
 python scripts/convert_pose_hdf5.py --sources wlasl100,wlasl300,aslcitizen300 --mix-synth --focus-wlasl100 \
   --out models/pose_features_focus.npz
 python scripts/train_ondevice_coreml.py --data models/pose_features_focus.npz --arch tcn-bilstm \
-  --heavy-aug --aug-copies 4 --mixup 0.2 --epochs 40 --batch 64 --lr 5.5e-4 --seed 29 \
-  --train-teacher --wlasl100-boost 2.75 --real-boost 1.45 \
-  --finetune-wlasl100-epochs 12 --bigram-rerank
+  --heavy-aug --aug-copies 4 --mixup 0.2 --epochs 40 --batch 64 --lr 5.5e-4 --seed 7 \
+  --teacher models/sign_classifier_c49c751_41p9.pt --distill-alpha 0.45 \
+  --wlasl100-boost 3.0 --real-boost 1.45 --synth-boost 0.55 --wlasl300-boost 1.15 \
+  --citizen-overlap-boost 1.3 --finetune-wlasl100-epochs 14 --finetune-include-citizen-overlap \
+  --bigram-rerank
+# then val-tune WeightedLogitEnsemble(ship, seed7, ftseed7) → export one Core ML
 # Daily CORE30 (filter from dense convert or core30 NPZ)
 python scripts/convert_pose_hdf5.py --sources wlasl100,wlasl300,aslcitizen100 --daily-dense \
   --out models/pose_features_daily_dense.npz

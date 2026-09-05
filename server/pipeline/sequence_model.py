@@ -144,6 +144,86 @@ if nn is not None:
                 return logits, self.nmm_aux(pooled)
             return logits
 
+
+    class TemporalConvBiLSTMv2(nn.Module):
+        """Dual-scale temporal conv (k=3 + k=7) + BiLSTM + NMM attention. Core ML clean."""
+
+        def __init__(
+            self,
+            input_dim: int = 170,
+            hidden_dim: int = 224,
+            num_layers: int = 2,
+            num_classes: int = 25,
+            bidirectional: bool = True,
+            dropout: float = 0.3,
+            nmm_dim: int = 11,
+            conv_channels: int = 0,
+            attn_heads: int = 4,
+        ) -> None:
+            super().__init__()
+            self.input_dim = input_dim
+            self.hidden_dim = hidden_dim
+            self.num_classes = num_classes
+            self.nmm_dim = nmm_dim
+            ch = conv_channels or hidden_dim
+            self.short = nn.Sequential(
+                nn.Conv1d(input_dim, ch, kernel_size=3, padding=1, bias=False),
+                nn.BatchNorm1d(ch),
+                nn.GELU(),
+            )
+            self.long = nn.Sequential(
+                nn.Conv1d(input_dim, ch, kernel_size=7, padding=3, bias=False),
+                nn.BatchNorm1d(ch),
+                nn.GELU(),
+            )
+            self.merge = nn.Sequential(
+                nn.Conv1d(ch * 2, ch, kernel_size=1, bias=False),
+                nn.BatchNorm1d(ch),
+                nn.GELU(),
+                nn.Dropout(dropout),
+            )
+            self.lstm = nn.LSTM(
+                input_size=ch,
+                hidden_size=hidden_dim,
+                num_layers=num_layers,
+                batch_first=True,
+                bidirectional=bidirectional,
+                dropout=dropout if num_layers > 1 else 0.0,
+            )
+            direction = 2 if bidirectional else 1
+            self.attn = nn.Sequential(
+                nn.Linear(hidden_dim * direction + nmm_dim, hidden_dim),
+                nn.Tanh(),
+                nn.Linear(hidden_dim, 1),
+            )
+            self.nmm_aux = nn.Sequential(
+                nn.Linear(hidden_dim * direction, hidden_dim // 2),
+                nn.ReLU(),
+                nn.Dropout(dropout),
+                nn.Linear(hidden_dim // 2, 3),
+            )
+            self.fc = nn.Sequential(
+                nn.Dropout(dropout),
+                nn.Linear(hidden_dim * direction, hidden_dim),
+                nn.ReLU(),
+                nn.Dropout(dropout),
+                nn.Linear(hidden_dim, num_classes),
+            )
+
+        def forward(self, x, return_aux: bool = False):
+            xt = x.transpose(1, 2)
+            h = self.merge(torch.cat([self.short(xt), self.long(xt)], dim=1)).transpose(1, 2)
+            out, _ = self.lstm(h)
+            nmm = x[:, :, -self.nmm_dim :]
+            scores = self.attn(torch.cat([out, nmm], dim=-1)).squeeze(-1)
+            weights = torch.softmax(scores, dim=-1).unsqueeze(-1)
+            pooled = (out * weights).sum(dim=1)
+            logits = self.fc(pooled)
+            if return_aux:
+                return logits, self.nmm_aux(pooled)
+            return logits
+
+
     class PoseTransformerEncoder(nn.Module):
         """Lightweight Transformer encoder; NMM channels gate the CLS pool."""
 
@@ -256,6 +336,8 @@ if nn is not None:
             return PoseLSTMClassifier(**kwargs)
         if arch in {"tcn-bilstm", "temporal-conv", "conv-lstm", "tcn"}:
             return TemporalConvBiLSTM(**kwargs)
+        if arch in {"tcn2-bilstm", "tcn-bilstm-v2", "dual-tcn", "tcn2"}:
+            return TemporalConvBiLSTMv2(**kwargs)
         if arch in {"transformer", "pose-transformer", "xfmr"}:
             return PoseTransformerEncoder(**kwargs)
         raise ValueError(f"unknown arch '{arch}'")

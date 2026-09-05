@@ -167,6 +167,21 @@ def main() -> int:
     ap.add_argument("--finetune-wlasl100-epochs", type=int, default=0,
                     help="After main train, fine-tune on WLASL100(+300) train only (honest domain adapt)")
     ap.add_argument("--finetune-lr", type=float, default=1.5e-4, help="LR for WLASL100 fine-tune phase")
+    ap.add_argument("--synth-boost", type=float, default=1.0, help="Downweight synth rows (<1) to reduce dilution")
+    ap.add_argument("--wlasl300-boost", type=float, default=1.0, help="Upsample weight for WLASL300 train rows")
+    ap.add_argument(
+        "--citizen-overlap-boost",
+        type=float,
+        default=1.0,
+        help="Boost ASL Citizen rows whose gloss is in the WLASL100 label set",
+    )
+    ap.add_argument("--init-from", type=Path, default=None, help="Warm-start student from a prior .pt")
+    ap.add_argument("--dropout", type=float, default=0.3, help="Model dropout")
+    ap.add_argument(
+        "--finetune-include-citizen-overlap",
+        action="store_true",
+        help="During WLASL fine-tune, also keep Citizen rows for WLASL100-overlap glosses",
+    )
     args = ap.parse_args()
 
     if not args.data.exists():
@@ -262,9 +277,21 @@ def main() -> int:
     assert len(src_full) == len(sample_w), (len(src_full), len(sample_w))
     boost = np.ones(len(sample_w), dtype=np.float64)
     boost[spl_full != "synth"] *= float(args.real_boost)
+    boost[spl_full == "synth"] *= float(args.synth_boost)
     boost[src_full == "wlasl100"] *= float(args.wlasl100_boost)
+    boost[src_full == "wlasl300"] *= float(args.wlasl300_boost)
+    # Citizen overlap: gloss appears in any WLASL100 row
+    w100_label_ids = set(int(i) for i in y[src_arr == "wlasl100"].tolist()) if (src_arr == "wlasl100").any() else set()
+    if args.citizen_overlap_boost != 1.0 and w100_label_ids:
+        cit_ov = np.array([(s.startswith("aslcitizen") and int(yi) in w100_label_ids) for s, yi in zip(src_full, ytr)], dtype=bool)
+        boost[cit_ov] *= float(args.citizen_overlap_boost)
+        print(f"citizen-overlap rows boosted: {int(cit_ov.sum())}")
     sample_w = sample_w * boost
-    print(f"sample boosts: real={args.real_boost} wlasl100={args.wlasl100_boost} mean_w={sample_w.mean():.3f}")
+    print(
+        f"sample boosts: real={args.real_boost} synth={args.synth_boost} "
+        f"wlasl100={args.wlasl100_boost} wlasl300={args.wlasl300_boost} "
+        f"citizen_ov={args.citizen_overlap_boost} mean_w={sample_w.mean():.3f}"
+    )
     sampler = WeightedRandomSampler(
         weights=torch.as_tensor(sample_w, dtype=torch.double),
         num_samples=len(sample_w),
@@ -278,7 +305,7 @@ def main() -> int:
         num_layers=args.layers,
         num_classes=len(labels),
         bidirectional=True,
-        dropout=0.3,
+        dropout=float(args.dropout),
         attn_heads=args.attn_heads,
     )
     if args.train_teacher and not (args.teacher and Path(args.teacher).exists()):
@@ -337,6 +364,14 @@ def main() -> int:
         print(f"teacher saved → {teacher_path} best={t_best:.3f}")
 
     model = build_sequence_model(args.arch, **model_kwargs).to(device)
+    if args.init_from and Path(args.init_from).exists():
+        ik = torch.load(args.init_from, map_location="cpu", weights_only=False)
+        try:
+            model.load_state_dict(ik["state_dict"], strict=True)
+            print(f"warm-start from {args.init_from} (strict)")
+        except Exception as e:
+            missing, unexpected = model.load_state_dict(ik["state_dict"], strict=False)
+            print(f"warm-start from {args.init_from} (partial) miss={len(missing)} unexp={len(unexpected)} err={e}")
     n_params = sum(p.numel() for p in model.parameters())
     print(f"model params={n_params:,} hidden={args.hidden} layers={args.layers} arch={args.arch}")
 
@@ -486,17 +521,30 @@ def main() -> int:
     # Honest domain adapt: fine-tune on WLASL100 (+ overlapping WLASL300) train only
     if args.finetune_wlasl100_epochs > 0:
         focus_src = np.isin(src_full, ["wlasl100", "wlasl300"])
+        if args.finetune_include_citizen_overlap and w100_label_ids:
+            cit_ov_ft = np.array(
+                [(str(s).startswith("aslcitizen") and int(yi) in w100_label_ids) for s, yi in zip(src_full, ytr)],
+                dtype=bool,
+            )
+            focus_src = focus_src | cit_ov_ft
         if not focus_src.any():
             print("finetune-wlasl100 skipped: no wlasl100/300 rows in expanded train")
         else:
             print(
                 f"=== fine-tune WLASL100/300 epochs={args.finetune_wlasl100_epochs} "
-                f"n={int(focus_src.sum())} lr={args.finetune_lr} ==="
+                f"n={int(focus_src.sum())} lr={args.finetune_lr} "
+                f"citizen_ov={args.finetune_include_citizen_overlap} ==="
             )
             ft_w = sample_w.copy()
             ft_w = np.where(focus_src, ft_w, 0.0)
             # Prefer pure WLASL100 even harder in this phase
             ft_w = np.where(src_full == "wlasl100", ft_w * 2.0, ft_w)
+            if args.finetune_include_citizen_overlap:
+                cit_ov_ft = np.array(
+                    [(str(s).startswith("aslcitizen") and int(yi) in w100_label_ids) for s, yi in zip(src_full, ytr)],
+                    dtype=bool,
+                )
+                ft_w = np.where(cit_ov_ft, ft_w * 0.85, ft_w)
             if ft_w.sum() <= 0:
                 print("finetune-wlasl100 skipped: zero weights")
             else:
@@ -694,9 +742,19 @@ def main() -> int:
         },
         "wlasl100_boost": args.wlasl100_boost,
         "real_boost": args.real_boost,
+        "synth_boost": args.synth_boost,
+        "wlasl300_boost": args.wlasl300_boost,
+        "citizen_overlap_boost": args.citizen_overlap_boost,
         "swa_start": swa_start,
         "finetune_wlasl100_epochs": args.finetune_wlasl100_epochs,
         "finetune_lr": args.finetune_lr,
+        "finetune_include_citizen_overlap": bool(args.finetune_include_citizen_overlap),
+        "arch_detail": args.arch,
+        "hidden": args.hidden,
+        "layers": args.layers,
+        "seed": args.seed,
+        "init_from": str(args.init_from) if args.init_from else None,
+        "teacher_path": str(args.teacher) if args.teacher else None,
     }
     if args.bigram_rerank or True:
         from pipeline.bigram_prior import (
@@ -826,11 +884,76 @@ def main() -> int:
                         best2 = swa_score
             m2.load_state_dict(state2)
             m2.eval()
+            print(f"  ens seed={seed} pre-finetune best={best2:.3f}")
+            # Match primary student: honest WLASL fine-tune before shipping into ensemble
+            if args.finetune_wlasl100_epochs > 0:
+                focus_src_e = np.isin(src_full, ["wlasl100", "wlasl300"])
+                if args.finetune_include_citizen_overlap and w100_label_ids:
+                    cit_ov_e = np.array(
+                        [(str(s).startswith("aslcitizen") and int(yi) in w100_label_ids) for s, yi in zip(src_full, ytr)],
+                        dtype=bool,
+                    )
+                    focus_src_e = focus_src_e | cit_ov_e
+                if focus_src_e.any():
+                    ft_w_e = np.where(focus_src_e, sample_w.copy(), 0.0)
+                    ft_w_e = np.where(src_full == "wlasl100", ft_w_e * 2.0, ft_w_e)
+                    ft_loader_e = DataLoader(
+                        TensorDataset(torch.from_numpy(Xtr), torch.from_numpy(ytr), torch.from_numpy(atr)),
+                        batch_size=args.batch,
+                        sampler=WeightedRandomSampler(
+                            weights=torch.as_tensor(ft_w_e, dtype=torch.double),
+                            num_samples=max(int(focus_src_e.sum()), args.batch),
+                            replacement=True,
+                        ),
+                    )
+                    for pg in opt2.param_groups:
+                        pg["lr"] = args.finetune_lr
+                    ft_da = min(args.distill_alpha, 0.35) if teacher is not None else 0.0
+                    for ft_ep in range(1, args.finetune_wlasl100_epochs + 1):
+                        m2.train()
+                        for xb, yb, ab in ft_loader_e:
+                            opt2.zero_grad()
+                            if args.mixup and args.mixup > 0:
+                                perm = torch.randperm(xb.size(0))
+                                xb2, yb2, ab2 = xb[perm], yb[perm], ab[perm]
+                                lam = float(torch.distributions.Beta(args.mixup, args.mixup).sample())
+                                lam = max(lam, 1.0 - lam)
+                                xb_m = lam * xb + (1.0 - lam) * xb2
+                                ab_m = lam * ab + (1.0 - lam) * ab2
+                                logits, aux_logits = m2(xb_m, return_aux=True)
+                                loss_ce = lam * crit(logits, yb) + (1.0 - lam) * crit(logits, yb2)
+                                loss = loss_ce + args.aux_weight * bce(aux_logits, ab_m)
+                                xb_d = xb_m
+                            else:
+                                logits, aux_logits = m2(xb, return_aux=True)
+                                loss = crit(logits, yb) + args.aux_weight * bce(aux_logits, ab)
+                                xb_d = xb
+                            if teacher is not None and ft_da > 0:
+                                with torch.no_grad():
+                                    t_logits = teacher(xb_d)
+                                T = args.distill_temp
+                                loss_kd = kl(torch.log_softmax(logits / T, dim=-1), torch.softmax(t_logits / T, dim=-1)) * (T * T)
+                                loss = ft_da * loss_kd + (1.0 - ft_da) * loss
+                            loss.backward()
+                            nn.utils.clip_grad_norm_(m2.parameters(), 2.0)
+                            opt2.step()
+                        if w100_val.any():
+                            with torch.no_grad():
+                                w_logits = forward_logits(m2, Xn[w100_val])
+                                score = float((w_logits.argmax(-1) == torch.from_numpy(y[w100_val])).float().mean())
+                            print(f"  ens seed={seed} finetune {ft_ep:02d} wlasl100_val@1={score:.3f}")
+                            if score >= best2:
+                                best2 = score
+                                state2 = {k: v.detach().cpu().clone() for k, v in m2.state_dict().items()}
+                                print("  * ens finetune best")
+                    m2.load_state_dict(state2)
+            m2.eval()
             print(f"  ens seed={seed} best={best2:.3f}")
             members.append(m2)
             member_states.append(state2)
             torch.save({"state_dict": state2, "seed": seed, "labels": labels, "arch": args.arch,
-                        "hidden_dim": args.hidden, "num_layers": args.layers},
+                        "hidden_dim": args.hidden, "num_layers": args.layers,
+                        "wlasl100_val": best2},
                        args.out.with_name(f"{args.out.stem}_seed{seed}.pt"))
         ens = LogitAverageEnsemble(members)
         ens.eval()

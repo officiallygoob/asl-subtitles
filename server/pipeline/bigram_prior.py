@@ -106,6 +106,16 @@ _TEMPLATES: list[list[str]] = [
     ["WHERE", "BATHROOM"],
     ["ME", "SORRY"],
     ["YOU", "PLEASE", "SLOW"],
+    ["YOU", "HUNGRY"],
+    ["WHAT", "TIME"],
+    ["ME", "GO", "WORK"],
+    ["YOU", "UNDERSTAND", "ME"],
+    ["PLEASE", "AGAIN"],
+    ["ME", "DEAF", "YOU", "HEARING"],
+    ["FAMILY", "FINE"],
+    ["MOTHER", "FATHER"],
+    ["BOOK", "READ"],
+    ["MOVIE", "WANT"],
 ]
 
 
