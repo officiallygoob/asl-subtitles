@@ -176,9 +176,12 @@
     "ABOUT",
     "AND",
     "BOY",
+    "GIRL",
     "MOVIE",
     "PARTY",
     "CHRISTMAS",
+    "HALLOWEEN",
+    "YELLOW",
     "ACCIDENT",
     "AFRICA",
     "ALL",
@@ -241,18 +244,12 @@
     "THIN",
     "WOMAN"
   ],
-  "val_acc": 0.33236435055732727,
-  "val_top5": 0.5978682041168213,
-  "test_acc": 0.309325248003006,
-  "test_top5": 0.5670962929725647,
-  "trained_on": "aslcitizen100+synth+wlasl100+wlasl300",
-  "arch": "tcn-bilstm-nmm",
-  "wlasl100_subset": {
-    "val_top1": 0.3757396340370178,
-    "val_top5": 0.6094674468040466,
-    "n_val": 338,
-    "test_top1": 0.341085284948349,
-    "test_top5": 0.6162790656089783,
-    "n_test": 258
-  }
+  "val_top1": 0.4201183319091797,
+  "val_top5": 0.6715976595878601,
+  "n_val": 338,
+  "test_top1": 0.41860464215278625,
+  "test_top5": 0.682170569896698,
+  "n_test": 258,
+  "arch": "tcn-bilstm",
+  "seed": 29
 }

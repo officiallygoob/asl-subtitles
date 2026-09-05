@@ -39,6 +39,15 @@ enum GlossBigramPrior {
             ["ABOUT", "WHAT"],
             ["PARTY", "WHEN"],
             ["CHRISTMAS", "PARTY"],
+            ["HALLOWEEN", "PARTY"],
+            ["GIRL", "NAME"],
+            ["BOY", "NAME"],
+            ["CLOTHES", "YELLOW"],
+            ["HELLO", "MY", "NAME"],
+            ["WHERE", "BATHROOM"],
+            ["FAMILY", "FATHER"],
+            ["ME", "SORRY"],
+            ["YOU", "PLEASE", "SLOW"],
         ]
         var counts: [String: [String: Double]] = [:]
         for tmpl in templates {

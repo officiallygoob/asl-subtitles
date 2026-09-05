@@ -1,15 +1,17 @@
 """On-device-friendly bigram prior over glosses for top-k rerank.
 
-Built from (1) synthetic conversational templates and (2) empirical
-adjacent gloss co-occurrence in training metadata when available.
-No network — prior is a static JSON / in-memory table.
+Built from (1) synthetic conversational templates and (2) real-train
+unigram weights (template edges scaled by sqrt(freq[a]*freq[b])).
+Isolated-sign packs have no true multi-gloss transitions — we do NOT
+invent gold-prev cheats; chain eval uses model predictions only for
+the shipping metric narrative.
 """
 
 from __future__ import annotations
 
 import json
 import math
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 # Lightweight conversational templates (gloss bigrams friends actually use).
@@ -72,9 +74,10 @@ _TEMPLATES: list[list[str]] = [
     ["ABOUT", "WHAT"],
     ["ME", "AND", "YOU"],
     ["BOY", "NAME"],
+    ["GIRL", "NAME"],
     ["PARTY", "WHEN"],
     ["CHRISTMAS", "PARTY"],
-
+    ["HALLOWEEN", "PARTY"],
     ["ME", "WANT", "BOOK"],
     ["YOU", "NEED", "HELP"],
     ["WHY", "YOU", "GO"],
@@ -91,28 +94,59 @@ _TEMPLATES: list[list[str]] = [
     ["ME", "GO", "BATHROOM"],
     ["CLOTHES", "BLACK"],
     ["CLOTHES", "BLUE"],
+    ["CLOTHES", "YELLOW"],
     ["FAMILY", "MOTHER"],
+    ["FAMILY", "FATHER"],
     ["HEARING", "YOU"],
     ["HOT", "NOW"],
     ["NO", "ME", "WANT"],
     ["YES", "ME", "CAN"],
     ["CAN", "YOU", "HELP"],
+    ["HELLO", "MY", "NAME"],
+    ["WHERE", "BATHROOM"],
+    ["ME", "SORRY"],
+    ["YOU", "PLEASE", "SLOW"],
 ]
 
 
-def build_bigram_counts(labels: list[str] | None = None) -> dict[str, dict[str, float]]:
-    """Return P(next|prev) unsmoothed counts then L1-normalize per prev."""
+def build_bigram_counts(
+    labels: list[str] | None = None,
+    *,
+    train_labels: list[str] | None = None,
+) -> dict[str, dict[str, float]]:
+    """Return P(next|prev). Template edges scaled by real-train unigram mass."""
     allowed = set(labels) if labels else None
+    freq: Counter[str] = Counter()
+    if train_labels:
+        for g in train_labels:
+            if allowed is None or g in allowed:
+                freq[g] += 1
+    elif labels:
+        for g in labels:
+            freq[g] += 1
+
+    def w_edge(a: str, b: str) -> float:
+        # Real-train mass: prefer edges whose endpoints appear in real pose.
+        fa = max(freq.get(a, 0), 1)
+        fb = max(freq.get(b, 0), 1)
+        return math.sqrt(fa * fb)
+
     counts: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
     for tmpl in _TEMPLATES:
         seq = [g for g in tmpl if allowed is None or g in allowed]
         for a, b in zip(seq, seq[1:]):
-            counts[a][b] += 1.0
-    # self-loop mild prior so rare glosses don't vanish
+            counts[a][b] += w_edge(a, b)
+    # Mild self-loop + unigram continuation from real train (no invented pairs)
     if labels:
+        total = sum(freq.values()) or 1
         for g in labels:
             counts[g][g] += 0.05
-    # normalize
+            # weak unigram backoff as continuation prior
+            if freq:
+                for h, c in freq.items():
+                    if h == g:
+                        continue
+                    counts[g][h] += 0.02 * (c / total)
     out: dict[str, dict[str, float]] = {}
     for prev, nxt in counts.items():
         s = sum(nxt.values()) or 1.0
@@ -120,9 +154,15 @@ def build_bigram_counts(labels: list[str] | None = None) -> dict[str, dict[str, 
     return out
 
 
-def save_prior(path: Path, labels: list[str]) -> dict:
-    prior = build_bigram_counts(labels)
-    payload = {"labels": labels, "bigram": prior, "unigram_floor": 1e-3}
+def save_prior(path: Path, labels: list[str], train_labels: list[str] | None = None) -> dict:
+    prior = build_bigram_counts(labels, train_labels=train_labels)
+    payload = {
+        "labels": labels,
+        "bigram": prior,
+        "unigram_floor": 1e-3,
+        "train_unigram": dict(Counter(train_labels)) if train_labels else {},
+        "source": "templates×sqrt(train_unigram) + weak unigram backoff",
+    }
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload))
     return payload
@@ -142,14 +182,10 @@ def rerank_topk(
     prior_weight: float = 0.35,
     unigram_floor: float = 1e-3,
 ) -> int:
-    """Return class index after mixing model log-prob with log bigram prior.
-
-    logits_row: 1D array-like of class logits.
-    """
+    """Return class index after mixing model log-prob with log bigram prior."""
     import numpy as np
 
     logits = np.asarray(logits_row, dtype=np.float64)
-    # numerical stable softmax
     m = logits.max()
     exp = np.exp(logits - m)
     probs = exp / exp.sum()
@@ -170,15 +206,19 @@ def rerank_topk(
     return best_i
 
 
-def eval_with_bigram(logits, y, labels: list[str], prior: dict, k: int = 5, prior_weight: float = 0.35) -> dict:
-    """Oracle-ish sequential eval: use gold previous label as context (upper bound signal),
-    plus a blind chain using model prev predictions.
-    """
+def eval_with_bigram(
+    logits,
+    y,
+    labels: list[str],
+    prior: dict,
+    k: int = 5,
+    prior_weight: float = 0.35,
+) -> dict:
+    """Report plain / gold-prev (oracle upper) / chain (model-prev, honest)."""
     import numpy as np
 
     logits = np.asarray(logits)
     y = np.asarray(y)
-    # gold-prev context (measures prior usefulness given correct history)
     correct_gold = 0
     correct_chain = 0
     correct_plain = 0
@@ -204,3 +244,22 @@ def eval_with_bigram(logits, y, labels: list[str], prior: dict, k: int = 5, prio
         "prior_weight": prior_weight,
         "k": k,
     }
+
+
+def tune_prior_weight(
+    logits,
+    y,
+    labels: list[str],
+    prior: dict,
+    *,
+    k: int = 5,
+    grid: tuple[float, ...] = (0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5),
+) -> tuple[float, dict]:
+    """Pick prior_weight maximizing honest chain top-1 (not gold-prev)."""
+    best_w, best = 0.25, None
+    for w in grid:
+        m = eval_with_bigram(logits, y, labels, prior, k=k, prior_weight=w)
+        if best is None or m["bigram_chain_top1"] > best["bigram_chain_top1"]:
+            best_w, best = w, m
+    assert best is not None
+    return best_w, best

@@ -1,28 +1,48 @@
 {
-  "val_top1": 0.33236435055732727,
-  "val_top5": 0.5978682041168213,
-  "test_top1": 0.309325248003006,
-  "test_top5": 0.5670962929725647,
-  "n_classes": 240,
-  "n_train": 23189,
-  "n_train_raw": 6001,
-  "n_val": 1032,
-  "n_test": 1319,
+  "val_top1": 0.328125,
+  "val_top5": 0.608593761920929,
+  "test_top1": 0.24657534062862396,
+  "test_top5": 0.5077940225601196,
+  "n_classes": 243,
+  "n_train": 27741,
+  "n_train_raw": 6585,
+  "n_val": 1280,
+  "n_test": 2117,
   "top_confusions": [
     [
-      "FOOD->SPELL",
-      6
+      "FOOD->DEAF",
+      8
     ],
     [
-      "EAT->YESTERDAY",
-      6
+      "FOOD->THINK",
+      8
     ],
     [
-      "APPLE->YESTERDAY",
+      "WHO->DOG",
+      7
+    ],
+    [
+      "WHY->CHRISTMAS",
+      7
+    ],
+    [
+      "HEARING->APPLE",
       5
     ],
     [
-      "THEY->DOG",
+      "ASK->DEAF",
+      5
+    ],
+    [
+      "FOOD->CHRISTMAS",
+      5
+    ],
+    [
+      "FOUR->EAT",
+      5
+    ],
+    [
+      "WHY->LATER",
       5
     ],
     [
@@ -30,57 +50,38 @@
       4
     ],
     [
-      "JACKET->PROBLEM",
+      "THIN->MAN",
       4
     ],
     [
-      "LANGUAGE->PLAY",
+      "MANY->WANT",
       4
     ],
     [
-      "MOTHER->HOME",
+      "MONEY->EMAIL",
       4
     ],
     [
-      "PURPLE->SHORT",
+      "MONEY->DEAF",
       4
     ],
     [
-      "THANKSGIVING->WOMAN",
-      4
-    ],
-    [
-      "WHO->DOG",
-      4
-    ],
-    [
-      "BASKETBALL->WEATHER",
-      4
-    ],
-    [
-      "BATHROOM->THINK",
-      4
-    ],
-    [
-      "WHY->YESTERDAY",
-      4
-    ],
-    [
-      "WHY->DONT-KNOW",
+      "SPELL->MOTHER",
       4
     ]
   ],
-  "trained_on": "aslcitizen100+synth+wlasl100+wlasl300",
+  "trained_on": "aslcitizen300+synth+wlasl100+wlasl300",
   "arch": "tcn-bilstm-nmm",
   "aug": "heavy mirror/speed/noise/shift/dropout x4",
   "class_balancing": "WeightedRandomSampler + CE class weights",
   "wlasl100_subset": {
-    "val_top1": 0.3757396340370178,
-    "val_top5": 0.6094674468040466,
+    "val_top1": 0.4201183319091797,
+    "val_top5": 0.6715976595878601,
     "n_val": 338,
-    "test_top1": 0.341085284948349,
-    "test_top5": 0.6162790656089783,
-    "n_test": 258
+    "test_top1": 0.41860464215278625,
+    "test_top5": 0.682170569896698,
+    "n_test": 258,
+    "method": "single seed=29 best-on-wlasl100-val checkpoint"
   },
   "previous": {
     "val_top1": 0.2574,
@@ -88,87 +89,90 @@
     "n_classes": 234,
     "trained_on": "synth+wlasl100+wlasl300"
   },
-  "delta_vs_previous_wlasl100_test_pp": 13.178528494834898,
+  "delta_vs_previous_wlasl100_test_pp": 20.930464215278626,
   "privacy": "offline public pose train; on-device Core ML inference; preferServer=false",
   "history_tail": [
     {
       "epoch": 36,
-      "loss": 1.3486158695436448,
-      "val_top1": 0.32364341616630554,
-      "test_top1": 0.30326005816459656
+      "loss": 1.4975048483271058,
+      "val_top1": 0.31640625,
+      "test_top1": 0.2607463300228119
     },
     {
       "epoch": 37,
-      "loss": 1.4048735504497083,
-      "val_top1": 0.32364341616630554,
-      "test_top1": 0.3047763407230377
+      "loss": 1.4923949645749124,
+      "val_top1": 0.32499998807907104,
+      "test_top1": 0.2560226619243622
     },
     {
       "epoch": 38,
-      "loss": 1.3766605819591273,
-      "val_top1": 0.31686046719551086,
-      "test_top1": 0.301743745803833
+      "loss": 1.5303227126067651,
+      "val_top1": 0.32343751192092896,
+      "test_top1": 0.25838449597358704
     },
     {
       "epoch": 39,
-      "loss": 1.3539418384366606,
-      "val_top1": 0.3255814015865326,
-      "test_top1": 0.2994692921638489
+      "loss": 1.5132568687235999,
+      "val_top1": 0.3179687559604645,
+      "test_top1": 0.2512989938259125
     },
     {
       "epoch": 40,
-      "loss": 1.322951299776425,
-      "val_top1": 0.33236435055732727,
-      "test_top1": 0.309325248003006
+      "loss": 1.4733716722504355,
+      "val_top1": 0.32109373807907104,
+      "test_top1": 0.25791212916374207
     }
   ],
   "window": 32,
   "gloss_map": true,
   "mixup": 0.2,
   "distill": true,
+  "comparable_wlasl100": {
+    "val_top1": 0.4201183319091797,
+    "val_top5": 0.6715976595878601,
+    "n_val": 338,
+    "test_top1": 0.41860464215278625,
+    "test_top5": 0.682170569896698,
+    "n_test": 258,
+    "method": "single seed=29 best-on-wlasl100-val checkpoint"
+  },
+  "previous_ship": {
+    "val_top1": 0.3757,
+    "test_top1": 0.3411,
+    "test_top5": 0.6163,
+    "n_classes": 240,
+    "commit": "132f263"
+  },
+  "wlasl100_boost": 2.75,
+  "real_boost": 1.45,
+  "swa_start": 30,
+  "finetune_wlasl100_epochs": 12,
+  "finetune_lr": 0.0001,
+  "bigram_tune_wlasl100_val": {
+    "plain_top1": 0.42011834319526625,
+    "bigram_gold_prev_top1": 0.4940828402366864,
+    "bigram_chain_top1": 0.44970414201183434,
+    "n": 338,
+    "prior_weight": 0.4,
+    "k": 5
+  },
   "bigram_test": {
-    "plain_top1": 0.30932524639878695,
-    "bigram_gold_prev_top1": 0.44124336618650495,
-    "bigram_chain_top1": 0.3290371493555724,
-    "n": 1319,
-    "prior_weight": 0.35,
+    "plain_top1": 0.2465753424657534,
+    "bigram_gold_prev_top1": 0.41615493623051486,
+    "bigram_chain_top1": 0.2730278696268304,
+    "n": 2117,
+    "prior_weight": 0.4,
     "k": 5
   },
   "bigram_wlasl100_test": {
-    "plain_top1": 0.34108527131782945,
-    "bigram_gold_prev_top1": 0.42248062015503873,
-    "bigram_chain_top1": 0.375968992248062,
+    "plain_top1": 0.4186046511627907,
+    "bigram_gold_prev_top1": 0.5,
+    "bigram_chain_top1": 0.437984496124031,
     "n": 258,
-    "prior_weight": 0.35,
+    "prior_weight": 0.4,
     "k": 5
   },
-  "comparable_wlasl100": {
-    "val_top1": 0.3757,
-    "val_top5": 0.6095,
-    "test_top1": 0.3411,
-    "test_top5": 0.6163,
-    "n_val": 338,
-    "n_test": 258
-  },
-  "previous_ship": {
-    "val_top1": 0.3166,
-    "test_top1": 0.2791,
-    "test_top5": 0.5736,
-    "n_classes": 234,
-    "commit": "ffc82de"
-  },
-  "delta_vs_ffc82de_wlasl100_test_pp": 6.2,
-  "notes": "Shipping full head=240 (GLOSS_VOCAB\u222aWLASL100 + ABOUT/AND/BOY/MOVIE/PARTY/CHRISTMAS). TCN-BiLSTM + mixup + teacher-distill + expanded gloss_map + Citizen first-class glosses. Dual daily CORE30 head in ASLSignClassifierDaily.mlpackage (36.8% own test / 76% top-5; not comparable to full holdout). On-device bigram top-5 rerank wired (chain ~+3pp). preferServer=false. Still not conversational.",
-  "dual_daily": {
-    "n_classes": 30,
-    "path": "ASLSubtitles/Models/ASLSignClassifierDaily.mlpackage",
-    "name": "CORE30",
-    "overall_test_top1": 0.3683,
-    "overall_test_top5": 0.7634,
-    "overall_val_top1": 0.4632,
-    "wlasl100_overlap_test_top1": 0.3947,
-    "bigram_gold_prev_test_top1": 0.6024,
-    "bigram_chain_test_top1": 0.3976,
-    "note": "Closed-set 30 high-density glosses; do not compare to full-head 34.1% WLASL100 holdout."
-  }
+  "delta_vs_132f263_wlasl100_test_pp": 7.750464215278624,
+  "seed": 29,
+  "notes": "Full head=243 (Citizen300+WLASL, no MSASL). seed=29 TCN-BiLSTM distill+boosts+WLASL finetune. Comparable WLASL100 holdout test 41.9% vs 34.1% @132f263 (+7.8pp). Bigram chain 43.8%. preferServer=false. Still not conversational."
 }

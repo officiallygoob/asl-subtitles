@@ -34,6 +34,8 @@ SOURCE_SPECS = {
     "wlasl100": ("wlasl100", "WLASL100_135"),
     "wlasl300": ("wlasl300", "WLASL300_135"),
     "aslcitizen100": ("aslcitizen100", "ASLCitizen100_135"),
+    "aslcitizen300": ("aslcitizen300", "ASLCitizen300_135"),
+    "msasl100": ("msasl100", "MSASL100_135"),
 }
 
 
@@ -75,7 +77,7 @@ def main() -> int:
     ap.add_argument(
         "--sources",
         default="wlasl100",
-        help="Comma-separated: wlasl100,wlasl300,aslcitizen100",
+        help="Comma-separated: wlasl100,wlasl300,aslcitizen100,aslcitizen300,msasl100",
     )
     ap.add_argument("--out", type=Path, default=ROOT / "models" / "pose_features.npz")
     ap.add_argument("--frames", type=int, default=32)
@@ -99,6 +101,9 @@ def main() -> int:
     args = ap.parse_args()
 
     source_names = [s.strip().lower() for s in args.sources.split(",") if s.strip()]
+    if "aslcitizen300" in source_names and "aslcitizen100" in source_names:
+        source_names = [s for s in source_names if s != "aslcitizen100"]
+        print("note: dropping aslcitizen100 (aslcitizen300 already requested)")
 
     # Seed allowed set for synonym snapping. Expand with WLASL100 labels once loaded.
     w100_path = args.data_root / "wlasl100" / "wlasl_100_maplabels.json"

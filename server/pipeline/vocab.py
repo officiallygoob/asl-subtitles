@@ -49,7 +49,7 @@ CONVERSATION_GLOSSES: list[str] = [
     # Conversation repair
     "SPELL", "WRITE", "LOOK", "ENGLISH", "ASL",
     # High-frequency ASL Citizen / WLASL300 conversational (first-class, not synonym merges)
-    "ABOUT", "AND", "BOY", "MOVIE", "PARTY", "CHRISTMAS",
+    "ABOUT", "AND", "BOY", "GIRL", "MOVIE", "PARTY", "CHRISTMAS", "HALLOWEEN", "YELLOW",
 ]
 
 
@@ -84,7 +84,7 @@ DAILY_GLOSSES: list[str] = [
     # High-frequency WLASL conversational that friends still use
     "FINISH", "CAN", "BEFORE", "CHANGE", "DECIDE", "MEET", "NICE", "WELCOME",
     "CLOTHES", "COMPUTER", "DOCTOR", "FAMILY", "APPLE", "CANDY", "DOG",
-    "ABOUT", "AND", "BOY", "MOVIE", "PARTY", "CHRISTMAS",
+    "ABOUT", "AND", "BOY", "GIRL", "MOVIE", "PARTY", "CHRISTMAS", "HALLOWEEN", "YELLOW",
 ]
 
 
@@ -100,7 +100,7 @@ DAILY_DENSE_GLOSSES: list[str] = [
     "WORK", "BROTHER", "CITY", "DOCTOR", "GIVE", "TELL", "MONEY", "TAKE", "CALL",
     "LEAVE", "HOW", "RIGHT", "SAME",
     # Added Citizen conversational with real pose
-    "ABOUT", "AND", "BOY", "MOVIE", "PARTY", "CHRISTMAS",
+    "ABOUT", "AND", "BOY", "GIRL", "MOVIE", "PARTY", "CHRISTMAS", "HALLOWEEN", "YELLOW",
 ]
 
 

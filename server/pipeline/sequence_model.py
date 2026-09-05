@@ -210,6 +210,46 @@ if nn is not None:
                 return logits, self.nmm_aux(pooled)
             return logits
 
+
+    class LogitAverageEnsemble(nn.Module):
+        """Average logits from N exportable students (ships as one Core ML graph)."""
+
+        def __init__(self, models: list) -> None:
+            super().__init__()
+            self.models = nn.ModuleList(models)
+            self.input_dim = models[0].input_dim
+            self.num_classes = models[0].num_classes
+
+        def forward(self, x, return_aux: bool = False):
+            logits = [m(x) for m in self.models]
+            avg = torch.stack(logits, dim=0).mean(dim=0)
+            if return_aux:
+                # aux from first member only (unused at inference)
+                _, aux = self.models[0](x, return_aux=True)
+                return avg, aux
+            return avg
+
+    class WeightedLogitEnsemble(nn.Module):
+        """Weighted logit mix (e.g. students + teacher) as one Core ML graph."""
+
+        def __init__(self, models: list, weights: list[float]) -> None:
+            super().__init__()
+            assert len(models) == len(weights)
+            self.models = nn.ModuleList(models)
+            w = torch.tensor([float(x) for x in weights], dtype=torch.float32)
+            w = w / w.sum().clamp_min(1e-8)
+            self.register_buffer("weights", w)
+            self.input_dim = models[0].input_dim
+            self.num_classes = models[0].num_classes
+
+        def forward(self, x, return_aux: bool = False):
+            stacked = torch.stack([m(x) for m in self.models], dim=0)
+            avg = (stacked * self.weights.view(-1, 1, 1)).sum(dim=0)
+            if return_aux:
+                _, aux = self.models[0](x, return_aux=True)
+                return avg, aux
+            return avg
+
     def build_sequence_model(arch: str, **kwargs) -> nn.Module:
         arch = (arch or "poselstm").lower().replace("_", "-")
         if arch in {"poselstm", "poselstm-v3", "lstm"}:

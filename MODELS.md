@@ -37,34 +37,34 @@ Camera → Vision holistic landmarks → Core ML PoseLSTM/TCN → English subtit
 
 - **Input:** `poses` float32 `[1, 32, 170]` (FEATURE_DIM v2).
 - **Arch:** temporal conv front-end + bidirectional LSTM + **NMM-conditioned temporal attention** + gloss head (+ NMM aux during train).
-- **Training levers this round:** expanded `gloss_map` synonyms; first-class Citizen glosses (`ABOUT`, `AND`, `BOY`, `MOVIE`, `PARTY`, `CHRISTMAS`); pose **mixup**; larger **teacher → student distill**; warmup+cosine LR; heavy aug; on-device bigram prior.
+- **Training levers this round:** expanded `gloss_map` synonyms; first-class Citizen glosses (`ABOUT`, `AND`, `BOY`, `GIRL`, `MOVIE`, `PARTY`, `CHRISTMAS`, `HALLOWEEN`, `YELLOW`); pose **mixup**; teacher→student **distill**; WLASL100/real **sample boosts**; **WLASL100/300 fine-tune**; SWA check; warmup+cosine; heavy aug; on-device bigram prior (val-tuned weight).
 - **Training data (offline):** public pose HDF5 from [CristianLazoQuispe/pose-action-recognition](https://huggingface.co/datasets/CristianLazoQuispe/pose-action-recognition) (MIT packaging of landmarks):
   - WLASL100 + overlapping WLASL300 clips
-  - **ASL Citizen 100** via gloss map + new first-class conversational labels
+  - **ASL Citizen 300** via gloss map + first-class conversational labels (**no MSASL** — diluted the holdout)
   - Synth kinematic fill for conversational glosses missing from public pose (full head only)
 - **Underlying video rights** remain with WLASL (research / C-UDA) and ASL Citizen (Microsoft research). We redistribute **converted landmarks + trained weights**, not videos.
 - **Eval (held-out WLASL100, comparable to prior ship):** see `server/models/eval_report.json`
 
 ### Comparable WLASL100 holdout (full head)
 
-| Split | Prior ship (ffc82de) | **Now** top-1 | **Now** top-5 |
+| Split | Prior ship (132f263) | **Now** top-1 | **Now** top-5 |
 |-------|----------------------|---------------|---------------|
-| Val (WLASL100) | 31.7% | **37.6%** | **61.0%** |
-| Test (WLASL100) | 27.9% | **34.1%** | **61.6%** |
+| Val (WLASL100) | 37.6% | **42.0%** | **67.2%** |
+| Test (WLASL100) | 34.1% | **41.9%** | **68.2%** |
 
-240-class full head. **+6.2 pp test top-1** vs ffc82de — real gain, **still short of 40%** and far from usable conversation.
+243-class full head. **+7.8 pp test top-1** vs 132f263 — **≥40%** comparable holdout; still far from usable conversation.
 
-Bigram top-5 rerank (same WLASL100 test, on-device prior): plain 34.1% → chain **37.6%** (gold-prev oracle upper **42.2%**).
+Bigram top-5 rerank (same WLASL100 test, on-device prior): plain 41.9% → chain **43.8%** (gold-prev oracle upper **50.0%**).
 
 ### Dual daily CORE30 head
 
 | Head | Classes | Metric | top-1 | top-5 |
 |------|---------|--------|-------|-------|
-| Full (ships as primary) | 240 | WLASL100 holdout | **34.1%** | **61.6%** |
+| Full (ships as primary) | 243 | WLASL100 holdout | **41.9%** | **68.2%** |
 | Daily CORE30 (ships dual) | 30 | own val / own test | **46.3%** / **36.8%** | 74.6% / **76.3%** |
 | Daily CORE30 + bigram | 30 | own test chain / gold-prev | 39.8% / **60.2%** | — |
 
-CORE30 = 30 highest-support conversational glosses from multi-source pose (no synth). **Own-test 36.8% is not ≥50%**, so full head remains the default Core ML; daily stays optional. WLASL100∩daily and CORE30 numbers are **easier closed sets** — do not compare to the full 100-class holdout.
+CORE30 = 30 highest-support conversational glosses from multi-source pose (no synth). **Own-test 36.8% is not ≥50%**, so full head remains the default Core ML; daily stays optional. WLASL100∩daily and CORE30 numbers are **easier closed sets** — do not compare to the full-head holdout.
 
 ### Rebuild Core ML
 
@@ -74,10 +74,12 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt -r requirements-ml.txt
 pip install h5py coremltools
 # Place HDF5 under server/data/{wlasl100,wlasl300,aslcitizen100}/
-python scripts/convert_pose_hdf5.py --sources wlasl100,wlasl300,aslcitizen100 --mix-synth --focus-wlasl100 \
+python scripts/convert_pose_hdf5.py --sources wlasl100,wlasl300,aslcitizen300 --mix-synth --focus-wlasl100 \
   --out models/pose_features_focus.npz
 python scripts/train_ondevice_coreml.py --data models/pose_features_focus.npz --arch tcn-bilstm \
-  --heavy-aug --aug-copies 4 --mixup 0.2 --epochs 40 --train-teacher --bigram-rerank
+  --heavy-aug --aug-copies 4 --mixup 0.2 --epochs 40 --batch 64 --lr 5.5e-4 --seed 29 \
+  --train-teacher --wlasl100-boost 2.75 --real-boost 1.45 \
+  --finetune-wlasl100-epochs 12 --bigram-rerank
 # Daily CORE30 (filter from dense convert or core30 NPZ)
 python scripts/convert_pose_hdf5.py --sources wlasl100,wlasl300,aslcitizen100 --daily-dense \
   --out models/pose_features_daily_dense.npz
@@ -96,7 +98,7 @@ python scripts/eval_classifier.py --split test --source-filter wlasl100 --data m
 | Source | What we use | License notes |
 |--------|-------------|---------------|
 | WLASL100 / WLASL300 pose HDF5 | COCO-135 → our layout; shipping uses W100 + W300 overlap | MIT packaging; cite WholeBodyPose; underlying WLASL research/C-UDA |
-| ASL Citizen 100 pose HDF5 | **Merged** via `pipeline/gloss_map.py` + first-class conversational adds | MIT packaging; Microsoft research terms for videos; landmarks only stored |
+| ASL Citizen 300 pose HDF5 | **Merged** via `pipeline/gloss_map.py` + first-class conversational adds | MIT packaging; Microsoft research terms for videos; landmarks only stored |
 | Synth kinematics | Fill missing conversational glosses (full head) | In-repo |
 | Uni-Sign checkpoints | Research only, not runtime | CC-BY-NC-4.0 |
 | How2Sign pose | **Blocked this round** | Continuous SLT; large shards; needs CTC/transducer — next continuous path |
