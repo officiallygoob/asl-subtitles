@@ -18,24 +18,34 @@ final class InAppCallController: ObservableObject {
     @Published var isCameraOn: Bool = true
     @Published var remoteName: String = "Friend"
     @Published var lastError: String?
+    /// User-facing validation message under the username field.
+    @Published var usernameError: String?
 
-    /// Local display username (not a phone number).
-    @Published var username: String = UserDefaults.standard.string(forKey: "asl.username") ?? "" {
+    /// Local display username (not a phone number). Rejected names are not persisted.
+    @Published var username: String = InAppCallController.loadPersistedUsername() {
         didSet {
-            let cleaned = Self.sanitizeUsername(username)
-            if cleaned != username { username = cleaned; return }
-            UserDefaults.standard.set(cleaned, forKey: "asl.username")
+            applyUsernameChange(username)
         }
     }
 
     private(set) var roomID: String = ""
+
+    /// Last name that passed validation (kept in UserDefaults).
+    private var persistedGoodUsername: String = InAppCallController.loadPersistedUsername()
 
     var displayName: String {
         let u = username.trimmingCharacters(in: .whitespacesAndNewlines)
         return u.isEmpty ? "You" : u
     }
 
+    /// True when the current field value is a fully valid, non-empty username.
+    var hasValidUsername: Bool {
+        if case .ok = UsernameModerator.validate(username) { return true }
+        return false
+    }
+
     func createInvite() {
+        guard ensureValidUsernameForAction() else { return }
         phase = .creatingLink
         roomID = String(UUID().uuidString.prefix(8)).lowercased()
         inviteCode = roomID
@@ -47,6 +57,7 @@ final class InAppCallController: ObservableObject {
     }
 
     func joinWithLinkOrCode() {
+        guard ensureValidUsernameForAction() else { return }
         let trimmed = joinField.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         if let id = trimmed.split(separator: "/").last?
@@ -82,10 +93,56 @@ final class InAppCallController: ObservableObject {
     func toggleMic() { isMicOn.toggle() }
     func toggleCamera() { isCameraOn.toggle() }
 
-    /// Letters, numbers, underscore; 3–24 chars; no phone-like strings.
+    /// Letters, numbers, underscore; max 24 chars (format only — use `UsernameModerator.validate` for full rules).
     static func sanitizeUsername(_ raw: String) -> String {
-        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_"))
-        let filtered = String(raw.unicodeScalars.filter { allowed.contains($0) })
-        return String(filtered.prefix(24))
+        UsernameModerator.sanitizeFormat(raw)
+    }
+
+    // MARK: - Private
+
+    private static func loadPersistedUsername() -> String {
+        let raw = UserDefaults.standard.string(forKey: "asl.username") ?? ""
+        if case .ok(let good) = UsernameModerator.validate(raw) {
+            return good
+        }
+        // Drop legacy bad / incomplete persisted values.
+        UserDefaults.standard.removeObject(forKey: "asl.username")
+        return ""
+    }
+
+    private func applyUsernameChange(_ raw: String) {
+        let cleaned = Self.sanitizeUsername(raw)
+        if cleaned != username {
+            username = cleaned
+            return
+        }
+
+        switch UsernameModerator.validate(cleaned) {
+        case .ok(let good):
+            usernameError = nil
+            persistedGoodUsername = good
+            UserDefaults.standard.set(good, forKey: "asl.username")
+        case .rejected(let reason):
+            usernameError = cleaned.isEmpty ? nil : reason
+            // Do not persist rejected names — keep previous good name or empty.
+            if persistedGoodUsername.isEmpty {
+                UserDefaults.standard.removeObject(forKey: "asl.username")
+            } else {
+                UserDefaults.standard.set(persistedGoodUsername, forKey: "asl.username")
+            }
+        }
+    }
+
+    @discardableResult
+    private func ensureValidUsernameForAction() -> Bool {
+        switch UsernameModerator.validate(username) {
+        case .ok:
+            usernameError = nil
+            return true
+        case .rejected(let reason):
+            usernameError = reason
+            lastError = reason
+            return false
+        }
     }
 }

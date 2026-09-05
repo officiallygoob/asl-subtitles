@@ -181,15 +181,29 @@ struct CallTabView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 8)
 
-            HStack {
-                Image(systemName: "person.crop.circle")
-                    .foregroundStyle(AppTheme.accent)
-                TextField("Username (no phone #)", text: $call.username)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Image(systemName: "person.crop.circle")
+                        .foregroundStyle(AppTheme.accent)
+                    TextField("Username (no phone #)", text: $call.username)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+                .padding(12)
+                .background(AppTheme.panelElevated, in: Capsule())
+
+                if let err = call.usernameError {
+                    Text(err)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.danger)
+                        .padding(.horizontal, 8)
+                } else if !call.username.isEmpty && !call.hasValidUsername {
+                    Text("3–24 chars, start with a letter, letters/numbers/_ only.")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.captionSecondary)
+                        .padding(.horizontal, 8)
+                }
             }
-            .padding(12)
-            .background(AppTheme.panelElevated, in: Capsule())
 
             Button {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -207,7 +221,8 @@ struct CallTabView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.black)
-            .background(AppTheme.accent, in: Capsule())
+            .background(call.hasValidUsername ? AppTheme.accent : AppTheme.accent.opacity(0.35), in: Capsule())
+            .disabled(!call.hasValidUsername)
 
             HStack {
                 TextField("Join with link or code", text: $call.joinField)
@@ -221,7 +236,7 @@ struct CallTabView: View {
                 }
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(AppTheme.accent)
-                .disabled(call.joinField.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(!call.hasValidUsername || call.joinField.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
 
             Text("No Contacts access. No SMS. Just usernames + links.")

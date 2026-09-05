@@ -127,6 +127,7 @@ Flashcard practice using the same recognition stack:
 Primary remote path we’re building toward: **1:1 WebRTC / LiveKit** where ASL Subtitles owns both video feeds and runs recognition on the friend’s frames with persistent captions + speech→text.
 
 **Now:** lobby with **username + share link/code** (no phone numbers / Contacts), local/remote layout, Liquid Glass caption chrome, mic/camera controls (signaling stubbed).  
+Client-side username filter blocks abusive/derogatory names (format + blocklist); **server must re-validate when accounts exist**.  
 **Next:** wire SDP/ICE or LiveKit room; pipe remote `CMSampleBuffer`s into `HolisticPoseDetector` → existing NMM + recognition.
 
 FaceTime screen-capture remains **advanced** (Call ⋯ menu / Settings), not the hero.

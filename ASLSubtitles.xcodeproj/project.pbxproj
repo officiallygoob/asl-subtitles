@@ -53,6 +53,7 @@
 		A1CALL0000000000000007 /* CallModePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1CALL0000000000000008 /* CallModePanel.swift */; };
 		A1INAPP000000000000001 /* InAppCallController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1INAPP000000000000002 /* InAppCallController.swift */; };
 		A1INAPP000000000000003 /* CallTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1INAPP000000000000004 /* CallTabView.swift */; };
+		A1INAPP000000000000005 /* UsernameModerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1INAPP000000000000006 /* UsernameModerator.swift */; };
 		A1LEARN000000000000001 /* LearnProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1LEARN000000000000002 /* LearnProgressStore.swift */; };
 		A1LEARN000000000000003 /* LearnDeck.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1LEARN000000000000004 /* LearnDeck.swift */; };
 		A1LEARN000000000000005 /* LearnSessionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1LEARN000000000000006 /* LearnSessionController.swift */; };
@@ -97,6 +98,9 @@
 		A1CALL0000000000000004 /* ASLSharePlayActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASLSharePlayActivity.swift; sourceTree = "<group>"; };
 		A1CALL0000000000000006 /* BroadcastPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BroadcastPickerView.swift; sourceTree = "<group>"; };
 		A1CALL0000000000000008 /* CallModePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallModePanel.swift; sourceTree = "<group>"; };
+		A1INAPP000000000000002 /* InAppCallController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppCallController.swift; sourceTree = "<group>"; };
+		A1INAPP000000000000004 /* CallTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallTabView.swift; sourceTree = "<group>"; };
+		A1INAPP000000000000006 /* UsernameModerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsernameModerator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -276,6 +280,7 @@
 			children = (
 				A1INAPP000000000000002 /* InAppCallController.swift */,
 				A1INAPP000000000000004 /* CallTabView.swift */,
+				A1INAPP000000000000006 /* UsernameModerator.swift */,
 			);
 			path = Call;
 			sourceTree = "<group>";
@@ -391,6 +396,7 @@
 				A1CALL0000000000000007 /* CallModePanel.swift in Sources */,
 				A1INAPP000000000000001 /* InAppCallController.swift in Sources */,
 				A1INAPP000000000000003 /* CallTabView.swift in Sources */,
+				A1INAPP000000000000005 /* UsernameModerator.swift in Sources */,
 				A1LEARN000000000000001 /* LearnProgressStore.swift in Sources */,
 				A1LEARN000000000000003 /* LearnDeck.swift in Sources */,
 				A1LEARN000000000000005 /* LearnSessionController.swift in Sources */,
