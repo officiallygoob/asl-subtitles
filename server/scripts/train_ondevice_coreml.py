@@ -153,6 +153,16 @@ def main() -> int:
     ap.add_argument("--mixup", type=float, default=0.0, help="Mixup alpha (0=off); try 0.2")
     ap.add_argument("--warmup-epochs", type=int, default=3)
     ap.add_argument("--teacher", type=Path, default=None, help="Teacher .pt for distillation")
+    ap.add_argument(
+        "--teachers",
+        default="",
+        help="Comma .pt paths for weighted logit ensemble teacher (overrides --teacher)",
+    )
+    ap.add_argument(
+        "--teacher-weights",
+        default="",
+        help="Comma weights for --teachers (default: uniform)",
+    )
     ap.add_argument("--distill-temp", type=float, default=2.0)
     ap.add_argument("--distill-alpha", type=float, default=0.6, help="Weight on KL distill vs CE")
     ap.add_argument("--train-teacher", action="store_true", help="First train larger teacher then distill to student")
@@ -463,9 +473,47 @@ def main() -> int:
     n_params = sum(p.numel() for p in model.parameters())
     print(f"model params={n_params:,} hidden={args.hidden} layers={args.layers} arch={args.arch}")
 
-    # Optional teacher for distillation
+    # Optional teacher for distillation (single .pt or weighted ensemble of .pt)
     teacher = None
-    if args.teacher and args.teacher.exists():
+    teacher_paths = [Path(p.strip()) for p in str(args.teachers).split(",") if p.strip()]
+    if teacher_paths:
+        from pipeline.sequence_model import WeightedLogitEnsemble
+
+        members = []
+        for tp in teacher_paths:
+            tp = tp if tp.is_absolute() else (ROOT / tp)
+            if not tp.exists():
+                raise FileNotFoundError(f"teacher missing: {tp}")
+            tckpt = torch.load(tp, map_location="cpu", weights_only=False)
+            t_hidden = int(tckpt.get("hidden_dim", args.teacher_hidden))
+            t_layers = int(tckpt.get("num_layers", args.teacher_layers))
+            t_arch = tckpt.get("arch", args.arch)
+            m = build_sequence_model(
+                t_arch,
+                input_dim=FEATURE_DIM,
+                hidden_dim=t_hidden,
+                num_layers=t_layers,
+                num_classes=len(tckpt.get("labels", labels)),
+                bidirectional=True,
+                dropout=0.0,
+                attn_heads=args.attn_heads,
+            )
+            m.load_state_dict(tckpt["state_dict"], strict=False)
+            m.eval()
+            for p_ in m.parameters():
+                p_.requires_grad_(False)
+            members.append(m)
+            print(f"  ens-teacher member {tp.name} arch={t_arch} hid={t_hidden}")
+        if args.teacher_weights.strip():
+            tw = [float(x) for x in args.teacher_weights.split(",") if x.strip()]
+        else:
+            tw = [1.0] * len(members)
+        if len(tw) != len(members):
+            raise ValueError(f"--teacher-weights len {len(tw)} != teachers {len(members)}")
+        teacher = WeightedLogitEnsemble(members, tw)
+        teacher.eval()
+        print(f"distill ensemble teacher n={len(members)} weights={tw}")
+    elif args.teacher and args.teacher.exists():
         tckpt = torch.load(args.teacher, map_location="cpu", weights_only=False)
         t_hidden = int(tckpt.get("hidden_dim", args.teacher_hidden))
         t_layers = int(tckpt.get("num_layers", args.teacher_layers))
@@ -486,6 +534,8 @@ def main() -> int:
             p_.requires_grad_(False)
         print(f"distill teacher loaded from {args.teacher} hidden={t_hidden} layers={t_layers}")
 
+    if teacher is not None:
+        teacher = teacher.to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=2e-4)
 
     def lr_at(epoch: int) -> float:
