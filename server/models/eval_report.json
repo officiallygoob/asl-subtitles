@@ -2,69 +2,72 @@
   "val_top1": null,
   "test_top1": null,
   "n_classes": 243,
-  "arch": "tcn-bilstm-nmm-weighted-ens4",
+  "arch": "tcn-bilstm-nmm-weighted-ens5",
   "wlasl100_subset": {
-    "val_top1": 0.5118343234062195,
-    "val_top5": 0.7485207319259644,
+    "val_top1": 0.5177514553070068,
+    "val_top5": 0.7603550553321838,
     "n_val": 338,
-    "test_top1": 0.4728682041168213,
-    "test_top5": 0.7286821603775024,
+    "test_top1": 0.4806201457977295,
+    "test_top5": 0.7441860437393188,
     "n_test": 258,
     "ensemble": true,
-    "n_members": 4,
+    "n_members": 5,
     "weights": [
-      0.15000000596046448,
-      0.4000000059604645,
-      0.20000000298023224,
-      0.25
+      0.21052631735801697,
+      0.21052631735801697,
+      0.21052631735801697,
+      0.2631579041481018,
+      0.10526315867900848
     ],
-    "method": "val-A/B gated weighted ens4 (s7+tight_s43+distill_ens_s19+tight_s53)",
-    "val_A": 0.5443786978721619,
-    "val_B": 0.4792899489402771
+    "method": "val-A/B gated weighted ens5 (tight_s43+distill_ens_s19+tight_s53+distill_ship_s29+tight_s59)",
+    "val_A": 0.5502958297729492,
+    "val_B": 0.48520711064338684
   },
   "comparable_wlasl100": {
-    "val_top1": 0.5118343234062195,
-    "val_top5": 0.7485207319259644,
+    "val_top1": 0.5177514553070068,
+    "val_top5": 0.7603550553321838,
     "n_val": 338,
-    "test_top1": 0.4728682041168213,
-    "test_top5": 0.7286821603775024,
+    "test_top1": 0.4806201457977295,
+    "test_top5": 0.7441860437393188,
     "n_test": 258,
-    "method": "gated weighted ens4"
+    "method": "gated weighted ens5"
   },
   "previous_ship": {
-    "test_top1": 0.4651162922382355,
-    "commit": "6a3a426"
+    "test_top1": 0.4728682041168213,
+    "commit": "61a75ea"
   },
-  "delta_vs_6a3a426_wlasl100_test_pp": 0.7751911878585815,
+  "delta_vs_61a75ea_wlasl100_test_pp": 0.7751941680908203,
   "bigram_tune_wlasl100_val": {
-    "plain_top1": 0.5118343195266272,
-    "bigram_gold_prev_top1": 0.5857988165680473,
-    "bigram_chain_top1": 0.5414201183431953,
+    "plain_top1": 0.5177514792899408,
+    "bigram_gold_prev_top1": 0.5680473372781065,
+    "bigram_chain_top1": 0.5325443786982249,
     "n": 338,
-    "prior_weight": 0.25,
+    "prior_weight": 0.2,
     "k": 5
   },
   "bigram_wlasl100_test": {
-    "plain_top1": 0.4728682170542636,
-    "bigram_gold_prev_top1": 0.5232558139534884,
-    "bigram_chain_top1": 0.46511627906976744,
+    "plain_top1": 0.4806201550387597,
+    "bigram_gold_prev_top1": 0.5310077519379846,
+    "bigram_chain_top1": 0.49224806201550386,
     "n": 258,
-    "prior_weight": 0.25,
+    "prior_weight": 0.2,
     "k": 5
   },
   "ensemble_members": [
-    "models/sign_classifier_s7.pt",
     "models/sign_classifier_tight_s43.pt",
     "models/sign_classifier_distill_ens_s19.pt",
-    "models/sign_classifier_tight_s53.pt"
+    "models/sign_classifier_tight_s53.pt",
+    "models/sign_classifier_distill_ship_s29.pt",
+    "models/sign_classifier_tight_s59.pt"
   ],
   "ensemble_weights": [
-    0.15000000596046448,
-    0.4000000059604645,
-    0.20000000298023224,
-    0.25
+    0.21052631735801697,
+    0.21052631735801697,
+    0.21052631735801697,
+    0.2631579041481018,
+    0.10526315867900848
   ],
   "privacy": "offline public pose train; on-device Core ML inference; preferServer=false",
-  "notes": "Weighted ens4 (s7+tight_s43+distill_ens_s19+tight_s53). Comparable WLASL100 plain top-1 47.3% vs 46.5% @6a3a426. preferServer=false.",
+  "notes": "Weighted ens5 (tight_s43+distill_ens_s19+tight_s53+distill_ship_s29+tight_s59). Comparable WLASL100 plain top-1 48.1% vs 47.3% @61a75ea. preferServer=false.",
   "seed": "ens-weighted-gated"
 }
