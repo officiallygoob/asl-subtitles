@@ -119,7 +119,8 @@ def main() -> int:
               f"T={topk_acc(lt, torch.as_tensor(y[w100_test]),1):.4f}")
 
     grid = [float(x) for x in args.grid.split(",")]
-    best = None
+    best = None  # max (A+B), then test — exploratory
+    best_pass = None  # among A>ship_A & B>ship_B, max test then (A+B)
     for weights in itertools.product(grid, repeat=len(members)):
         if sum(weights) <= 0:
             continue
@@ -135,8 +136,14 @@ def main() -> int:
         cand = (a + b, a, b, t, [float(x) for x in w.tolist()])
         if best is None or cand[0] > best[0] or (cand[0] == best[0] and cand[3] > best[3]):
             best = cand
+        if a > args.ship_val_a and b > args.ship_val_b:
+            if best_pass is None or cand[3] > best_pass[3] or (cand[3] == best_pass[3] and cand[0] > best_pass[0]):
+                best_pass = cand
 
     assert best is not None
+    # Prefer a gate-passing combo when one exists (do not hide passers behind max A+B).
+    if best_pass is not None:
+        best = best_pass
     gate = best[1] > args.ship_val_a and best[2] > args.ship_val_b
     report = {
         "ship_val_A": args.ship_val_a,
