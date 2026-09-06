@@ -182,7 +182,7 @@ Details: [`MODELS.md`](MODELS.md) · server: [`server/README.md`](server/README.
 | NMM soft cues (question / negation / emphasis) on English | Reliable fine facial grammar / role shift |
 | Optional Train/Capture for a friend’s dialect | Automatic dialect discovery |
 
-**Expected gain vs heuristics-only:** measurable lift on glosses covered by WLASL+Citizen pose pretrain (see `server/models/eval_report.json`: WLASL100 holdout **~43% val / ~43% test top-1**, **~68% / ~69% top-5**, 243-class weighted TCN-BiLSTM ensemble — +1.5pp vs 41.9% @c49c751, still below research RGB SLR / ≥50%). Optional dual daily-real head (~110 glosses) is higher on its closed set. **Friend-specific fine-tune still required for comfortable 1:1 chat.**
+**Expected gain vs heuristics-only:** measurable lift on glosses covered by WLASL+Citizen pose pretrain (see `server/models/eval_report.json`: WLASL100 holdout **~46% val / ~45% test top-1**, **~71% / ~68% top-5**, 243-class densified+gated weighted TCN-BiLSTM ensemble — +1.9pp vs 43.4% @fb6e6e3, still below research RGB SLR / ≥50%). Optional dual daily-real head (~110 glosses) is higher on its closed set. **Friend-specific fine-tune still required for comfortable 1:1 chat.**
 
 ### How we train (offline, on your machines)
 

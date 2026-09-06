@@ -9,8 +9,9 @@ Gloss strings are canonicalized via pipeline.gloss_map (sense-suffix strip +
 synonym/lemma map) so ASL Citizen rows merge into the training head.
 
 Usage:
-  python scripts/convert_pose_hdf5.py --sources wlasl100,aslcitizen100,wlasl300 --mix-synth --focus-wlasl100
-  python scripts/convert_pose_hdf5.py --sources wlasl100,aslcitizen100,wlasl300 --mix-synth --daily-vocab
+  python scripts/convert_pose_hdf5.py --sources wlasl100,wlasl300,aslcitizen300 --mix-synth --focus-wlasl100
+  python scripts/convert_pose_hdf5.py --sources wlasl100,wlasl300,aslcitizen300,aslcitizen2731,wlasl2000 \
+      --mix-synth --focus-wlasl100 --dedup-exact --train-only-extra aslcitizen2731,wlasl2000
 """
 
 from __future__ import annotations
@@ -33,10 +34,35 @@ from pipeline.vocab import DAILY_DENSE, DAILY_VOCAB, GLOSS_VOCAB  # noqa: E402
 SOURCE_SPECS = {
     "wlasl100": ("wlasl100", "WLASL100_135"),
     "wlasl300": ("wlasl300", "WLASL300_135"),
+    "wlasl2000": ("wlasl2000", "WLASL2000_135"),
     "aslcitizen100": ("aslcitizen100", "ASLCitizen100_135"),
     "aslcitizen300": ("aslcitizen300", "ASLCitizen300_135"),
+    "aslcitizen2731": ("aslcitizen2731", "ASLCitizen2731_135"),
     "msasl100": ("msasl100", "MSASL100_135"),
 }
+
+# Prefer earlier sources when fingerprints collide (holdout integrity + no double-count).
+SOURCE_PRIORITY = {
+    "wlasl100": 0,
+    "wlasl300": 1,
+    "wlasl2000": 2,
+    "aslcitizen100": 3,
+    "aslcitizen300": 4,
+    "aslcitizen2731": 5,
+    "msasl100": 9,
+    "synth": 10,
+}
+
+
+def feature_fingerprint(x: np.ndarray) -> tuple:
+    x = x.astype(np.float32)
+    return (
+        float(x.mean()),
+        float(x.std()),
+        float(x[0, :16].sum()),
+        float(x[-1, :16].sum()),
+        float(x[:, 0].sum()),
+    )
 
 
 def load_split(path: Path, frames: int, allowed: set[str] | None) -> tuple[list[np.ndarray], list[str], list[str]]:
@@ -77,7 +103,7 @@ def main() -> int:
     ap.add_argument(
         "--sources",
         default="wlasl100",
-        help="Comma-separated: wlasl100,wlasl300,aslcitizen100,aslcitizen300,msasl100",
+        help="Comma-separated: wlasl100,wlasl300,wlasl2000,aslcitizen100,aslcitizen300,aslcitizen2731,msasl100",
     )
     ap.add_argument("--out", type=Path, default=ROOT / "models" / "pose_features.npz")
     ap.add_argument("--frames", type=int, default=32)
@@ -98,12 +124,33 @@ def main() -> int:
         action="store_true",
         help="High-density daily head (~DAILY_DENSE, ~60–70 well-supported glosses)",
     )
+    ap.add_argument(
+        "--dedup-exact",
+        action="store_true",
+        help="Drop exact feature-fingerprint duplicates across sources (keeps highest-priority source)",
+    )
+    ap.add_argument(
+        "--train-only-extra",
+        default="",
+        help="Comma sources whose Val/Test are skipped (Train only → densify without touching holdout)",
+    )
+    ap.add_argument(
+        "--protect-holdout-sources",
+        default="wlasl100",
+        help="Sources whose val/test fingerprints block any later-source duplicates (leakage guard)",
+    )
     args = ap.parse_args()
 
     source_names = [s.strip().lower() for s in args.sources.split(",") if s.strip()]
     if "aslcitizen300" in source_names and "aslcitizen100" in source_names:
         source_names = [s for s in source_names if s != "aslcitizen100"]
         print("note: dropping aslcitizen100 (aslcitizen300 already requested)")
+    if "aslcitizen2731" in source_names and "aslcitizen300" in source_names:
+        # Keep both: 2731 densifies; 300 already trusted. Dedup will collapse overlaps.
+        pass
+
+    train_only_extra = {s.strip().lower() for s in args.train_only_extra.split(",") if s.strip()}
+    protect_holdout = {s.strip().lower() for s in args.protect_holdout_sources.split(",") if s.strip()}
 
     # Seed allowed set for synonym snapping. Expand with WLASL100 labels once loaded.
     w100_path = args.data_root / "wlasl100" / "wlasl_100_maplabels.json"
@@ -139,11 +186,19 @@ def main() -> int:
             continue
         folder, prefix = SOURCE_SPECS[name]
         splits = resolve_split_paths(args.data_root, folder, prefix)
+        if name in train_only_extra:
+            splits = {"train": splits["train"]}
         missing = [str(p) for p in splits.values() if not p.exists()]
         if missing:
-            blockers.append(f"{name}: missing files {missing}")
-            print(f"SKIP {name}: missing {missing}", file=sys.stderr)
-            continue
+            # Allow optional missing val/test for densify-only packs
+            optional_ok = all(Path(m).name.endswith(("-Val.hdf5", "-Test.hdf5")) for m in missing)
+            if optional_ok and splits.get("train") and splits["train"].exists():
+                splits = {k: v for k, v in splits.items() if v.exists()}
+                print(f"note: {name} missing optional splits {missing}; loading {list(splits)}")
+            else:
+                blockers.append(f"{name}: missing files {missing}")
+                print(f"SKIP {name}: missing {missing}", file=sys.stderr)
+                continue
         for split, path in splits.items():
             xs, labs, raws = load_split(path, args.frames, allowed_snap)
             print(f"{name}/{split}: {len(xs)} from {path.name}")
@@ -195,6 +250,56 @@ def main() -> int:
     else:
         union = list(dict.fromkeys(list(base_vocab) + real_glosses))
 
+    # Exact-fingerprint dedup + holdout protection
+    dedup_stats = {"enabled": bool(args.dedup_exact), "dropped_dup": 0, "dropped_holdout_leak": 0}
+    if args.dedup_exact or protect_holdout:
+        hold_fps: set[tuple] = set()
+        for x, sp, src in zip(all_X, split_ids, source_ids):
+            if src in protect_holdout and sp in ("val", "test"):
+                hold_fps.add(feature_fingerprint(x))
+        print(f"holdout fingerprints protected: {len(hold_fps)} from {sorted(protect_holdout)}")
+
+        # Sort by priority so we keep the best source for each fingerprint
+        order = sorted(
+            range(len(all_X)),
+            key=lambda i: (
+                SOURCE_PRIORITY.get(source_ids[i], 50),
+                0 if split_ids[i] in ("val", "test") and source_ids[i] in protect_holdout else 1,
+                i,
+            ),
+        )
+        seen: dict[tuple, int] = {}
+        keep_mask = [False] * len(all_X)
+        for i in order:
+            fp = feature_fingerprint(all_X[i])
+            src = source_ids[i]
+            sp = split_ids[i]
+            # Non-protected source colliding with holdout → drop (leakage)
+            if src not in protect_holdout and fp in hold_fps and sp == "train":
+                dedup_stats["dropped_holdout_leak"] += 1
+                continue
+            # Always keep protected holdout rows (comparable eval integrity)
+            is_protected_hold = src in protect_holdout and sp in ("val", "test")
+            if args.dedup_exact and not is_protected_hold:
+                if fp in seen:
+                    dedup_stats["dropped_dup"] += 1
+                    continue
+                seen[fp] = i
+            elif args.dedup_exact and is_protected_hold:
+                seen.setdefault(fp, i)
+            keep_mask[i] = True
+
+        before = len(all_X)
+        all_X = [x for x, k in zip(all_X, keep_mask) if k]
+        all_y_gloss = [g for g, k in zip(all_y_gloss, keep_mask) if k]
+        split_ids = [s for s, k in zip(split_ids, keep_mask) if k]
+        source_ids = [s for s, k in zip(source_ids, keep_mask) if k]
+        # all_raw aligned only loosely for report already printed
+        print(
+            f"dedup: {before}→{len(all_X)} dropped_dup={dedup_stats['dropped_dup']} "
+            f"dropped_holdout_leak={dedup_stats['dropped_holdout_leak']}"
+        )
+
     if args.mix_synth:
         from scripts.synthesize_pose_dataset import synthesize_sequence
 
@@ -205,7 +310,7 @@ def main() -> int:
             target_vocab = list(DAILY_VOCAB)
         else:
             target_vocab = list(GLOSS_VOCAB)
-        missing = [g for g in target_vocab if g not in set(real_glosses)]
+        missing = [g for g in target_vocab if g not in set(all_y_gloss)]
         print(f"synth-fill {len(missing)} conversational glosses × {args.synth_per_class}")
         for g in missing:
             for _ in range(args.synth_per_class):
@@ -253,7 +358,7 @@ def main() -> int:
         )
 
     # Citizen contribution after mapping
-    cit_mask = [s == "aslcitizen100" for s in source_ids]
+    cit_mask = [str(s).startswith("aslcitizen") for s in source_ids]
     cit_glosses = sorted({g for g, m in zip(all_y_gloss, cit_mask) if m})
 
     meta = {
@@ -269,6 +374,8 @@ def main() -> int:
         "gloss_map": report,
         "citizen_mapped_glosses": cit_glosses,
         "n_citizen_rows": int(sum(cit_mask)),
+        "dedup": dedup_stats,
+        "train_only_extra": sorted(train_only_extra),
         "mode": (
             "daily-dense" if args.daily_dense else
             "daily" if args.daily_vocab else

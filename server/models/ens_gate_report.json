@@ -1,0 +1,21 @@
+{
+  "ship_val_A": 0.45544554455445546,
+  "ship_val_B": 0.39705882352941174,
+  "best_val_A": 0.4900990099009901,
+  "best_val_B": 0.4264705882352941,
+  "weights": [
+    0.2,
+    0.4,
+    0.0,
+    0.4
+  ],
+  "members": [
+    "models/sign_classifier_c49c751_41p9.pt",
+    "models/sign_classifier_s7.pt",
+    "models/sign_classifier_ftseed7.pt",
+    "models/sign_classifier_dense_s43.pt"
+  ],
+  "gate": true,
+  "test_ens": 0.45348837209302323,
+  "test_ship": 0.43410852713178294
+}

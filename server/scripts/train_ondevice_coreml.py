@@ -182,6 +182,30 @@ def main() -> int:
         action="store_true",
         help="During WLASL fine-tune, also keep Citizen rows for WLASL100-overlap glosses",
     )
+    ap.add_argument(
+        "--hard-mine-from",
+        type=Path,
+        default=None,
+        help="eval_report.json or .pt with top_confusions; boost confusable classes/pairs",
+    )
+    ap.add_argument(
+        "--hard-class-boost",
+        type=float,
+        default=1.75,
+        help="Extra sample weight for true classes that appear in top confusions",
+    )
+    ap.add_argument(
+        "--hard-pair-boost",
+        type=float,
+        default=1.35,
+        help="Extra sample weight when label is either side of a top confusion pair",
+    )
+    ap.add_argument(
+        "--hard-top-k",
+        type=int,
+        default=40,
+        help="How many top confusion pairs to mine",
+    )
     args = ap.parse_args()
 
     if not args.data.exists():
@@ -286,6 +310,50 @@ def main() -> int:
         cit_ov = np.array([(s.startswith("aslcitizen") and int(yi) in w100_label_ids) for s, yi in zip(src_full, ytr)], dtype=bool)
         boost[cit_ov] *= float(args.citizen_overlap_boost)
         print(f"citizen-overlap rows boosted: {int(cit_ov.sum())}")
+
+    # Class-focused hard-example mining from prior confusions (generalizes better than ensemble tweaks)
+    hard_true_ids: set[int] = set()
+    hard_pair_ids: set[int] = set()
+    if args.hard_mine_from and Path(args.hard_mine_from).exists():
+        conf_pairs: list[tuple[str, str, int]] = []
+        hm = Path(args.hard_mine_from)
+        if hm.suffix == ".json":
+            rep = json.loads(hm.read_text())
+            raw_conf = rep.get("top_confusions") or []
+        else:
+            ck = torch.load(hm, map_location="cpu", weights_only=False)
+            raw_conf = ck.get("top_confusions") or []
+        label_to_id = {g: i for i, g in enumerate(labels)}
+        for item in raw_conf:
+            if isinstance(item, (list, tuple)) and len(item) >= 1:
+                key = item[0]
+                cnt = int(item[1]) if len(item) > 1 else 1
+            elif isinstance(item, str):
+                key, cnt = item, 1
+            else:
+                continue
+            if "->" not in key:
+                continue
+            a, b = key.split("->", 1)
+            conf_pairs.append((a.strip(), b.strip(), cnt))
+        conf_pairs = sorted(conf_pairs, key=lambda t: -t[2])[: max(1, int(args.hard_top_k))]
+        for a, b, _ in conf_pairs:
+            if a in label_to_id:
+                hard_true_ids.add(label_to_id[a])
+                hard_pair_ids.add(label_to_id[a])
+            if b in label_to_id:
+                hard_pair_ids.add(label_to_id[b])
+        if hard_true_ids and args.hard_class_boost != 1.0:
+            m = np.isin(ytr, list(hard_true_ids))
+            boost[m] *= float(args.hard_class_boost)
+            print(f"hard-mine true-class boost x{args.hard_class_boost}: rows={int(m.sum())} classes={len(hard_true_ids)}")
+        if hard_pair_ids and args.hard_pair_boost != 1.0:
+            m = np.isin(ytr, list(hard_pair_ids))
+            boost[m] *= float(args.hard_pair_boost)
+            print(f"hard-mine pair boost x{args.hard_pair_boost}: rows={int(m.sum())} classes={len(hard_pair_ids)} pairs={len(conf_pairs)}")
+    elif args.hard_mine_from:
+        print(f"warn: --hard-mine-from missing: {args.hard_mine_from}")
+
     sample_w = sample_w * boost
     print(
         f"sample boosts: real={args.real_boost} synth={args.synth_boost} "
@@ -710,7 +778,7 @@ def main() -> int:
         "trained_on": trained_on,
         "arch": arch_name,
         "aug": f"{'heavy' if args.heavy_aug else 'std'} mirror/speed/noise/shift/dropout x{args.aug_copies}",
-        "class_balancing": "WeightedRandomSampler + CE class weights",
+        "class_balancing": "WeightedRandomSampler + CE class weights + hard-mine" if args.hard_mine_from else "WeightedRandomSampler + CE class weights",
         "wlasl100_subset": w100_metrics,
         "previous": {
             "val_top1": 0.2574,

@@ -37,30 +37,30 @@ Camera → Vision holistic landmarks → Core ML PoseLSTM/TCN → English subtit
 
 - **Input:** `poses` float32 `[1, 32, 170]` (FEATURE_DIM v2).
 - **Arch:** temporal conv front-end + bidirectional LSTM + **NMM-conditioned temporal attention** + gloss head (+ NMM aux during train).
-- **Training levers this round:** synth downweight + Citizen-overlap / WLASL300 boosts; pose **mixup**; distill from prior ship; WLASL100 fine-tune (+Citizen overlap); **val-tuned weighted logit ensemble → one Core ML**; dual-scale TCN v2 available (`tcn2-bilstm`); SWA; bigram prior (val-tuned weight).
+- **Training levers this round:** **ASL Citizen 2731 + WLASL2000 densify** (train-only extras, fingerprint dedup, holdout leak guard); class-focused **hard-example mining** from prior confusions; longer single schedules; **val-A tune + val-B gate** before any ensemble ship; mixup/distill/SWA/finetune retained.
 - **Training data (offline):** public pose HDF5 from [CristianLazoQuispe/pose-action-recognition](https://huggingface.co/datasets/CristianLazoQuispe/pose-action-recognition) (MIT packaging of landmarks):
-  - WLASL100 + overlapping WLASL300 clips
-  - **ASL Citizen 300** via gloss map + first-class conversational labels (**no MSASL** — diluted the holdout)
+  - WLASL100 + overlapping WLASL300 / **WLASL2000** clips (deduped)
+  - **ASL Citizen 300 + 2731** via gloss map (**no MSASL** — diluted the holdout)
   - Synth kinematic fill for conversational glosses missing from public pose (full head only)
 - **Underlying video rights** remain with WLASL (research / C-UDA) and ASL Citizen (Microsoft research). We redistribute **converted landmarks + trained weights**, not videos.
 - **Eval (held-out WLASL100, comparable to prior ship):** see `server/models/eval_report.json`
 
 ### Comparable WLASL100 holdout (full head)
 
-| Split | Prior ship (c49c751) | **Now** top-1 | **Now** top-5 |
+| Split | Prior ship (fb6e6e3) | **Now** top-1 | **Now** top-5 |
 |-------|----------------------|---------------|---------------|
-| Val (WLASL100) | 42.0% | **43.2%** | **68.0%** |
-| Test (WLASL100) | 41.9% | **43.4%** | **68.6%** |
+| Val (WLASL100) | 43.2% | **46.4%** | **70.7%** |
+| Test (WLASL100) | 43.4% | **45.3%** | **68.2%** |
 
-243-class full head. **Plain top-1 43.4%** vs 41.9% @c49c751 (**+1.5 pp**). Val-tuned weighted ensemble of 3 TCN-BiLSTM students → single Core ML. Still well short of ≥50% / conversation.
+243-class full head. **Plain top-1 45.3%** vs 43.4% @fb6e6e3 (**+1.9 pp**). Data densification (ASL Citizen 2731 + WLASL2000 overlap, exact-dedup, holdout-safe) + hard-example mining → strong single `dense_s43`, then **val-A/B gated** weighted ens3 (c49c751 + s7 + dense_s43 → one Core ML). Still short of ≥50% / conversation.
 
-Bigram top-5 rerank (same WLASL100 test, on-device prior): plain 43.4% → chain **43.8%** (gold-prev oracle upper **50.8%**).
+Bigram top-5 rerank remains available on-device; plain holdout is the ship gate.
 
 ### Dual daily CORE30 head
 
 | Head | Classes | Metric | top-1 | top-5 |
 |------|---------|--------|-------|-------|
-| Full (ships as primary) | 243 | WLASL100 holdout | **43.4%** | **68.6%** |
+| Full (ships as primary) | 243 | WLASL100 holdout | **45.3%** | **68.2%** |
 | Daily CORE30 (ships dual) | 30 | own val / own test | **46.3%** / **36.8%** | 74.6% / **76.3%** |
 | Daily CORE30 + bigram | 30 | own test chain / gold-prev | 39.8% / **60.2%** | — |
 
@@ -74,15 +74,16 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt -r requirements-ml.txt
 pip install h5py coremltools
 # Place HDF5 under server/data/{wlasl100,wlasl300,aslcitizen100}/
-python scripts/convert_pose_hdf5.py --sources wlasl100,wlasl300,aslcitizen300 --mix-synth --focus-wlasl100 \
-  --out models/pose_features_focus.npz
-python scripts/train_ondevice_coreml.py --data models/pose_features_focus.npz --arch tcn-bilstm \
-  --heavy-aug --aug-copies 4 --mixup 0.2 --epochs 40 --batch 64 --lr 5.5e-4 --seed 7 \
-  --teacher models/sign_classifier_c49c751_41p9.pt --distill-alpha 0.45 \
-  --wlasl100-boost 3.0 --real-boost 1.45 --synth-boost 0.55 --wlasl300-boost 1.15 \
-  --citizen-overlap-boost 1.3 --finetune-wlasl100-epochs 14 --finetune-include-citizen-overlap \
-  --bigram-rerank
-# then val-tune WeightedLogitEnsemble(ship, seed7, ftseed7) → export one Core ML
+python scripts/convert_pose_hdf5.py --sources wlasl100,wlasl300,aslcitizen300,aslcitizen2731,wlasl2000 \
+  --mix-synth --focus-wlasl100 --dedup-exact --train-only-extra aslcitizen2731,wlasl2000 \
+  --out models/pose_features_dense.npz
+python scripts/train_ondevice_coreml.py --data models/pose_features_dense.npz --arch tcn-bilstm \
+  --heavy-aug --aug-copies 4 --mixup 0.2 --epochs 48 --batch 48 --lr 5e-4 --seed 43 \
+  --teacher models/sign_classifier_c49c751_41p9.pt --distill-alpha 0.42 \
+  --wlasl100-boost 3.25 --real-boost 1.4 --synth-boost 0.45 --wlasl300-boost 1.1 \
+  --citizen-overlap-boost 1.15 --finetune-wlasl100-epochs 18 --finetune-include-citizen-overlap \
+  --hard-mine-from models/hard_mine_confusions.json --bigram-rerank
+# then val-A/B gate WeightedLogitEnsemble(c49c751, s7, dense_s43) → export one Core ML only if both slices lift
 # Daily CORE30 (filter from dense convert or core30 NPZ)
 python scripts/convert_pose_hdf5.py --sources wlasl100,wlasl300,aslcitizen100 --daily-dense \
   --out models/pose_features_daily_dense.npz
@@ -101,7 +102,8 @@ python scripts/eval_classifier.py --split test --source-filter wlasl100 --data m
 | Source | What we use | License notes |
 |--------|-------------|---------------|
 | WLASL100 / WLASL300 pose HDF5 | COCO-135 → our layout; shipping uses W100 + W300 overlap | MIT packaging; cite WholeBodyPose; underlying WLASL research/C-UDA |
-| ASL Citizen 300 pose HDF5 | **Merged** via `pipeline/gloss_map.py` + first-class conversational adds | MIT packaging; Microsoft research terms for videos; landmarks only stored |
+| ASL Citizen 300 / **2731** pose HDF5 | **Merged** via `pipeline/gloss_map.py` (2731 densifies weak WLASL100 classes) | MIT packaging; Microsoft research terms for videos; landmarks only stored |
+| WLASL2000 pose HDF5 | Overlap clips into focus head after fingerprint dedup | MIT packaging; underlying WLASL research/C-UDA |
 | Synth kinematics | Fill missing conversational glosses (full head) | In-repo |
 | Uni-Sign checkpoints | Research only, not runtime | CC-BY-NC-4.0 |
 | How2Sign pose | **Blocked this round** | Continuous SLT; large shards; needs CTC/transducer — next continuous path |

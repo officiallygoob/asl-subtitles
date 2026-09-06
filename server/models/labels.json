@@ -244,21 +244,80 @@
     "THIN",
     "WOMAN"
   ],
-  "wlasl100_subset": {
-    "val_top1": 0.43195265531539917,
-    "val_top5": 0.6804733872413635,
-    "n_val": 338,
-    "test_top1": 0.43410852551460266,
-    "test_top5": 0.6860465407371521,
-    "n_test": 258,
-    "ensemble": true,
-    "n_members": 3,
-    "weights": [
-      0.1,
-      0.585,
-      0.315
+  "val_acc": 0.318036288022995,
+  "val_top5": 0.595517635345459,
+  "test_acc": 0.24448034167289734,
+  "test_top5": 0.49219170212745667,
+  "trained_on": "aslcitizen2731+aslcitizen300+synth+wlasl100+wlasl2000+wlasl300",
+  "arch": "tcn-bilstm",
+  "top_confusions": [
+    [
+      "FOOD->BUT",
+      7
     ],
-    "method": "val-tuned weighted logit ensemble (ship+s7+ftseed7)"
-  },
-  "arch": "tcn-bilstm-weighted-ens3"
+    [
+      "FOOD->WEATHER",
+      6
+    ],
+    [
+      "FOOD->CHRISTMAS",
+      6
+    ],
+    [
+      "HALLOWEEN->WEATHER",
+      6
+    ],
+    [
+      "PLAY->PARTY",
+      6
+    ],
+    [
+      "HEARING->APPLE",
+      5
+    ],
+    [
+      "YESTERDAY->EAT",
+      5
+    ],
+    [
+      "NO->DEAF",
+      4
+    ],
+    [
+      "ASK->DEAF",
+      4
+    ],
+    [
+      "THINK->FAMILY",
+      4
+    ],
+    [
+      "FOOD->TAKE",
+      4
+    ],
+    [
+      "STOP->PARTY",
+      4
+    ],
+    [
+      "FINE->WOMAN",
+      4
+    ],
+    [
+      "GREEN->BATHROOM",
+      4
+    ],
+    [
+      "FAMILY->THINK",
+      4
+    ]
+  ],
+  "wlasl100_subset": {
+    "val_top1": 0.4378698170185089,
+    "val_top5": 0.6745561957359314,
+    "n_val": 338,
+    "test_top1": 0.39534884691238403,
+    "test_top5": 0.6472868323326111,
+    "n_test": 258
+  }
 }
