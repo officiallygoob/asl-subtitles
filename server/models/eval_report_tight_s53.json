@@ -1,0 +1,183 @@
+{
+  "val_top1": 0.2767364978790283,
+  "val_top5": 0.520396888256073,
+  "test_top1": 0.1768397092819214,
+  "test_top5": 0.3685111105442047,
+  "n_classes": 243,
+  "n_train": 42440,
+  "n_train_raw": 8584,
+  "n_val": 907,
+  "n_test": 1753,
+  "top_confusions": [
+    [
+      "WEATHER->BASKETBALL",
+      9
+    ],
+    [
+      "WHY->FORGET",
+      8
+    ],
+    [
+      "TWO->DOG",
+      8
+    ],
+    [
+      "FAMILY->DEAF",
+      7
+    ],
+    [
+      "TAKE->CHANGE",
+      6
+    ],
+    [
+      "HELLO->COUSIN",
+      6
+    ],
+    [
+      "TEXT->HOW",
+      6
+    ],
+    [
+      "THEY->DOG",
+      6
+    ],
+    [
+      "WHY->LATER",
+      6
+    ],
+    [
+      "GREEN->DOG",
+      5
+    ],
+    [
+      "PARTY->PLAY",
+      5
+    ],
+    [
+      "AND->DOG",
+      5
+    ],
+    [
+      "ASK->DEAF",
+      5
+    ],
+    [
+      "WHY->BLACK",
+      5
+    ],
+    [
+      "THINK->FAMILY",
+      5
+    ]
+  ],
+  "trained_on": "aslcitizen2731+aslcitizen300+synth+wlasl100+wlasl2000+wlasl300",
+  "arch": "tcn-bilstm-nmm",
+  "aug": "heavy mirror/speed/noise/shift/dropout x4",
+  "class_balancing": "WeightedRandomSampler + CE class weights + hard-mine",
+  "wlasl100_subset": {
+    "val_top1": 0.4704141914844513,
+    "val_top5": 0.7189348936080933,
+    "n_val": 338,
+    "test_top1": 0.43410852551460266,
+    "test_top5": 0.751937985420227,
+    "n_test": 258
+  },
+  "previous": {
+    "val_top1": 0.2574,
+    "test_top1": 0.2093,
+    "n_classes": 234,
+    "trained_on": "synth+wlasl100+wlasl300"
+  },
+  "delta_vs_previous_wlasl100_test_pp": 22.480852551460266,
+  "privacy": "offline public pose train; on-device Core ML inference; preferServer=false",
+  "history_tail": [
+    {
+      "epoch": 68,
+      "loss": 1.5769875938099134,
+      "val_top1": 0.3175303339958191,
+      "test_top1": 0.2361665666103363
+    },
+    {
+      "epoch": 69,
+      "loss": 1.555358759195146,
+      "val_top1": 0.33186328411102295,
+      "test_top1": 0.23787792026996613
+    },
+    {
+      "epoch": 70,
+      "loss": 1.547071846783105,
+      "val_top1": 0.3274531364440918,
+      "test_top1": 0.23445521295070648
+    },
+    {
+      "epoch": 71,
+      "loss": 1.5264699030776387,
+      "val_top1": 0.3296582102775574,
+      "test_top1": 0.23559612035751343
+    },
+    {
+      "epoch": 72,
+      "loss": 1.5918619434750383,
+      "val_top1": 0.32083791494369507,
+      "test_top1": 0.22875070571899414
+    }
+  ],
+  "window": 32,
+  "gloss_map": true,
+  "mixup": 0.2,
+  "distill": true,
+  "comparable_wlasl100": {
+    "val_top1": 0.4704141914844513,
+    "val_top5": 0.7189348936080933,
+    "test_top1": 0.43410852551460266,
+    "test_top5": 0.751937985420227,
+    "n_val": 338,
+    "n_test": 258
+  },
+  "previous_ship": {
+    "val_top1": 0.3757,
+    "test_top1": 0.3411,
+    "test_top5": 0.6163,
+    "n_classes": 240,
+    "commit": "132f263"
+  },
+  "wlasl100_boost": 3.5,
+  "real_boost": 1.45,
+  "synth_boost": 0.35,
+  "wlasl300_boost": 1.1,
+  "citizen_overlap_boost": 1.25,
+  "swa_start": 54,
+  "finetune_wlasl100_epochs": 32,
+  "finetune_lr": 6e-05,
+  "finetune_include_citizen_overlap": true,
+  "arch_detail": "tcn-bilstm",
+  "hidden": 192,
+  "layers": 2,
+  "seed": 53,
+  "init_from": null,
+  "teacher_path": "models/sign_classifier_tight_s43.pt",
+  "bigram_tune_wlasl100_val": {
+    "plain_top1": 0.47041420118343197,
+    "bigram_gold_prev_top1": 0.4940828402366864,
+    "bigram_chain_top1": 0.47041420118343197,
+    "n": 338,
+    "prior_weight": 0.1,
+    "k": 5
+  },
+  "bigram_test": {
+    "plain_top1": 0.17683970336565888,
+    "bigram_gold_prev_top1": 0.2139189960068454,
+    "bigram_chain_top1": 0.18254420992584142,
+    "n": 1753,
+    "prior_weight": 0.1,
+    "k": 5
+  },
+  "bigram_wlasl100_test": {
+    "plain_top1": 0.43410852713178294,
+    "bigram_gold_prev_top1": 0.46124031007751937,
+    "bigram_chain_top1": 0.4418604651162791,
+    "n": 258,
+    "prior_weight": 0.1,
+    "k": 5
+  }
+}

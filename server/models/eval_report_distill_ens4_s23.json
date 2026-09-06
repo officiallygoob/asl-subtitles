@@ -1,0 +1,183 @@
+{
+  "val_top1": 0.3153252601623535,
+  "val_top5": 0.5733186602592468,
+  "test_top1": 0.21734170615673065,
+  "test_top5": 0.44894465804100037,
+  "n_classes": 243,
+  "n_train": 42440,
+  "n_train_raw": 8584,
+  "n_val": 907,
+  "n_test": 1753,
+  "top_confusions": [
+    [
+      "WEATHER->BASKETBALL",
+      8
+    ],
+    [
+      "FINE->WOMAN",
+      7
+    ],
+    [
+      "TEXT->HOW",
+      6
+    ],
+    [
+      "WHY->FORGET",
+      5
+    ],
+    [
+      "WHY->BLACK",
+      5
+    ],
+    [
+      "FAMILY->DEAF",
+      5
+    ],
+    [
+      "THREE->DOG",
+      5
+    ],
+    [
+      "TWO->DOG",
+      5
+    ],
+    [
+      "WHY->FAMILY",
+      5
+    ],
+    [
+      "HEARING->APPLE",
+      4
+    ],
+    [
+      "AND->DOG",
+      4
+    ],
+    [
+      "FAMILY->YES",
+      4
+    ],
+    [
+      "BABY->WOMAN",
+      4
+    ],
+    [
+      "CALL->ANSWER",
+      4
+    ],
+    [
+      "STOP->STUDY",
+      4
+    ]
+  ],
+  "trained_on": "aslcitizen2731+aslcitizen300+synth+wlasl100+wlasl2000+wlasl300",
+  "arch": "tcn-bilstm-nmm",
+  "aug": "heavy mirror/speed/noise/shift/dropout x4",
+  "class_balancing": "WeightedRandomSampler + CE class weights + hard-mine",
+  "wlasl100_subset": {
+    "val_top1": 0.46449702978134155,
+    "val_top5": 0.7189348936080933,
+    "n_val": 338,
+    "test_top1": 0.43410852551460266,
+    "test_top5": 0.7170542478561401,
+    "n_test": 258
+  },
+  "previous": {
+    "val_top1": 0.2574,
+    "test_top1": 0.2093,
+    "n_classes": 234,
+    "trained_on": "synth+wlasl100+wlasl300"
+  },
+  "delta_vs_previous_wlasl100_test_pp": 22.480852551460266,
+  "privacy": "offline public pose train; on-device Core ML inference; preferServer=false",
+  "history_tail": [
+    {
+      "epoch": 60,
+      "loss": 1.3122972636488,
+      "val_top1": 0.3098125755786896,
+      "test_top1": 0.24187107384204865
+    },
+    {
+      "epoch": 61,
+      "loss": 1.3123152423421804,
+      "val_top1": 0.31201764941215515,
+      "test_top1": 0.247575581073761
+    },
+    {
+      "epoch": 62,
+      "loss": 1.3130714525938258,
+      "val_top1": 0.30429989099502563,
+      "test_top1": 0.24871648848056793
+    },
+    {
+      "epoch": 63,
+      "loss": 1.275076634809726,
+      "val_top1": 0.3087100386619568,
+      "test_top1": 0.2452937811613083
+    },
+    {
+      "epoch": 64,
+      "loss": 1.2880866037125187,
+      "val_top1": 0.31312018632888794,
+      "test_top1": 0.2447233349084854
+    }
+  ],
+  "window": 32,
+  "gloss_map": true,
+  "mixup": 0.2,
+  "distill": true,
+  "comparable_wlasl100": {
+    "val_top1": 0.46449702978134155,
+    "val_top5": 0.7189348936080933,
+    "test_top1": 0.43410852551460266,
+    "test_top5": 0.7170542478561401,
+    "n_val": 338,
+    "n_test": 258
+  },
+  "previous_ship": {
+    "val_top1": 0.3757,
+    "test_top1": 0.3411,
+    "test_top5": 0.6163,
+    "n_classes": 240,
+    "commit": "132f263"
+  },
+  "wlasl100_boost": 3.4,
+  "real_boost": 1.45,
+  "synth_boost": 0.4,
+  "wlasl300_boost": 1.1,
+  "citizen_overlap_boost": 1.2,
+  "swa_start": 48,
+  "finetune_wlasl100_epochs": 28,
+  "finetune_lr": 7e-05,
+  "finetune_include_citizen_overlap": true,
+  "arch_detail": "tcn-bilstm",
+  "hidden": 192,
+  "layers": 2,
+  "seed": 23,
+  "init_from": null,
+  "teacher_path": null,
+  "bigram_tune_wlasl100_val": {
+    "plain_top1": 0.46449704142011833,
+    "bigram_gold_prev_top1": 0.5414201183431953,
+    "bigram_chain_top1": 0.5029585798816568,
+    "n": 338,
+    "prior_weight": 0.3,
+    "k": 5
+  },
+  "bigram_test": {
+    "plain_top1": 0.21734169994295494,
+    "bigram_gold_prev_top1": 0.3525385054192812,
+    "bigram_chain_top1": 0.2190530519110097,
+    "n": 1753,
+    "prior_weight": 0.3,
+    "k": 5
+  },
+  "bigram_wlasl100_test": {
+    "plain_top1": 0.43410852713178294,
+    "bigram_gold_prev_top1": 0.5,
+    "bigram_chain_top1": 0.41472868217054265,
+    "n": 258,
+    "prior_weight": 0.3,
+    "k": 5
+  }
+}
