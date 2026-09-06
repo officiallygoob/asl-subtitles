@@ -1,0 +1,183 @@
+{
+  "val_top1": 0.3087100386619568,
+  "val_top5": 0.5633957982063293,
+  "test_top1": 0.19110096991062164,
+  "test_top5": 0.3930405080318451,
+  "n_classes": 243,
+  "n_train": 42440,
+  "n_train_raw": 8584,
+  "n_val": 907,
+  "n_test": 1753,
+  "top_confusions": [
+    [
+      "WEATHER->BASKETBALL",
+      12
+    ],
+    [
+      "AND->DOG",
+      7
+    ],
+    [
+      "WHY->FORGET",
+      7
+    ],
+    [
+      "TEXT->HOW",
+      7
+    ],
+    [
+      "TWO->DOG",
+      7
+    ],
+    [
+      "FAMILY->DEAF",
+      6
+    ],
+    [
+      "WHY->DOG",
+      6
+    ],
+    [
+      "CALL->GO",
+      6
+    ],
+    [
+      "IMPORTANT->FINISH",
+      6
+    ],
+    [
+      "WHY->FAMILY",
+      6
+    ],
+    [
+      "ANSWER->GO",
+      5
+    ],
+    [
+      "BABY->WOMAN",
+      5
+    ],
+    [
+      "PARTY->PLAY",
+      5
+    ],
+    [
+      "YESTERDAY->EAT",
+      5
+    ],
+    [
+      "YESTERDAY->CANDY",
+      5
+    ]
+  ],
+  "trained_on": "aslcitizen2731+aslcitizen300+synth+wlasl100+wlasl2000+wlasl300",
+  "arch": "tcn-bilstm-nmm",
+  "aug": "heavy mirror/speed/noise/shift/dropout x4",
+  "class_balancing": "WeightedRandomSampler + CE class weights + hard-mine",
+  "wlasl100_subset": {
+    "val_top1": 0.4674556255340576,
+    "val_top5": 0.7396449446678162,
+    "n_val": 338,
+    "test_top1": 0.39534884691238403,
+    "test_top5": 0.7403100728988647,
+    "n_test": 258
+  },
+  "previous": {
+    "val_top1": 0.2574,
+    "test_top1": 0.2093,
+    "n_classes": 234,
+    "trained_on": "synth+wlasl100+wlasl300"
+  },
+  "delta_vs_previous_wlasl100_test_pp": 18.604884691238404,
+  "privacy": "offline public pose train; on-device Core ML inference; preferServer=false",
+  "history_tail": [
+    {
+      "epoch": 52,
+      "loss": 1.4659802856364417,
+      "val_top1": 0.34068357944488525,
+      "test_top1": 0.247575581073761
+    },
+    {
+      "epoch": 53,
+      "loss": 1.4694804780669757,
+      "val_top1": 0.3351708948612213,
+      "test_top1": 0.24586422741413116
+    },
+    {
+      "epoch": 54,
+      "loss": 1.465492531783619,
+      "val_top1": 0.3351708948612213,
+      "test_top1": 0.24814604222774506
+    },
+    {
+      "epoch": 55,
+      "loss": 1.4663216014946552,
+      "val_top1": 0.32414552569389343,
+      "test_top1": 0.24643468856811523
+    },
+    {
+      "epoch": 56,
+      "loss": 1.4618757882284512,
+      "val_top1": 0.33186328411102295,
+      "test_top1": 0.24586422741413116
+    }
+  ],
+  "window": 32,
+  "gloss_map": true,
+  "mixup": 0.2,
+  "distill": true,
+  "comparable_wlasl100": {
+    "val_top1": 0.4674556255340576,
+    "val_top5": 0.7396449446678162,
+    "test_top1": 0.39534884691238403,
+    "test_top5": 0.7403100728988647,
+    "n_val": 338,
+    "n_test": 258
+  },
+  "previous_ship": {
+    "val_top1": 0.3757,
+    "test_top1": 0.3411,
+    "test_top5": 0.6163,
+    "n_classes": 240,
+    "commit": "132f263"
+  },
+  "wlasl100_boost": 3.4,
+  "real_boost": 1.45,
+  "synth_boost": 0.4,
+  "wlasl300_boost": 1.1,
+  "citizen_overlap_boost": 1.2,
+  "swa_start": 42,
+  "finetune_wlasl100_epochs": 24,
+  "finetune_lr": 7e-05,
+  "finetune_include_citizen_overlap": true,
+  "arch_detail": "tcn-bilstm",
+  "hidden": 192,
+  "layers": 2,
+  "seed": 19,
+  "init_from": null,
+  "teacher_path": null,
+  "bigram_tune_wlasl100_val": {
+    "plain_top1": 0.46745562130177515,
+    "bigram_gold_prev_top1": 0.5502958579881657,
+    "bigram_chain_top1": 0.4881656804733728,
+    "n": 338,
+    "prior_weight": 0.3,
+    "k": 5
+  },
+  "bigram_test": {
+    "plain_top1": 0.19110096976611524,
+    "bigram_gold_prev_top1": 0.30119794637763836,
+    "bigram_chain_top1": 0.19965772960638906,
+    "n": 1753,
+    "prior_weight": 0.3,
+    "k": 5
+  },
+  "bigram_wlasl100_test": {
+    "plain_top1": 0.3953488372093023,
+    "bigram_gold_prev_top1": 0.5,
+    "bigram_chain_top1": 0.43410852713178294,
+    "n": 258,
+    "prior_weight": 0.3,
+    "k": 5
+  }
+}

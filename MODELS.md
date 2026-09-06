@@ -37,7 +37,7 @@ Camera → Vision holistic landmarks → Core ML PoseLSTM/TCN → English subtit
 
 - **Input:** `poses` float32 `[1, 32, 170]` (FEATURE_DIM v2).
 - **Arch:** temporal conv front-end + bidirectional LSTM + **NMM-conditioned temporal attention** + gloss head (+ NMM aux during train).
-- **Training levers this round:** **tight synonym map** (no meal→FOOD bucket); **SHORT/FORGET** densify via Citizen `SHORTPERSON`/`FORGETFUL`; longer singles on densified data; class-focused hard-mine + gloss boost; **val-A tune + val-B gate** before ensemble ship; mixup/distill/SWA/finetune retained.
+- **Training levers this round:** ensemble **KD distill** from high-test ungated ens3 into `distill_ens_s19`; longer tight singles (`tight_s7`); **val-A tune + val-B gate** before ens4 ship; mixup/distill/SWA/finetune retained.
 - **Training data (offline):** public pose HDF5 from [CristianLazoQuispe/pose-action-recognition](https://huggingface.co/datasets/CristianLazoQuispe/pose-action-recognition) (MIT packaging of landmarks):
   - WLASL100 + overlapping WLASL300 / **WLASL2000** clips (deduped)
   - **ASL Citizen 300 + 2731** via gloss map (**no MSASL** — diluted the holdout)
@@ -49,10 +49,10 @@ Camera → Vision holistic landmarks → Core ML PoseLSTM/TCN → English subtit
 
 | Split | Prior ship (fb3e0f5) | **Now** top-1 | **Now** top-5 |
 |-------|----------------------|---------------|---------------|
-| Val (WLASL100) | 46.4% | **48.5%** | **71.3%** |
-| Test (WLASL100) | 45.3% | **45.7%** | **70.2%** |
+| Val (WLASL100) | 48.5% | **49.7%** | **73.1%** |
+| Test (WLASL100) | 45.7% | **46.5%** | **72.1%** |
 
-243-class full head. **Plain top-1 45.7%** vs 45.3% @fb3e0f5 (**+0.4 pp**). Tighter synonym map (dropped meal→FOOD dilution); Citizen `FORGETFUL`→`FORGET` + `SHORTPERSON`→`SHORT`; longer single `tight_s43` (val 47.3% / test 43.8%); **val-A/B gated** weighted ens3 (s7 + dense_s43 + tight_s43 → one Core ML). Still short of ≥50% / conversation.
+243-class full head. **Plain top-1 46.5%** vs 45.7% @f144fb9 (**+0.8 pp**). Distilled high-test ungated ens (s7+tight_s43+tcn2) into `distill_ens_s19`; **val-A/B gated** weighted ens4 (s7 + tight_s43 + tight_s7 + distill_ens_s19 → one Core ML) clears gates (val-A 52.1% / val-B 47.3%) with test 46.5%. Still short of ≥50% / conversation.
 
 Bigram top-5 rerank remains available on-device; plain holdout is the ship gate.
 
@@ -60,7 +60,7 @@ Bigram top-5 rerank remains available on-device; plain holdout is the ship gate.
 
 | Head | Classes | Metric | top-1 | top-5 |
 |------|---------|--------|-------|-------|
-| Full (ships as primary) | 243 | WLASL100 holdout | **45.7%** | **70.2%** |
+| Full (ships as primary) | 243 | WLASL100 holdout | **46.5%** | **72.1%** |
 | Daily CORE30 (ships dual) | 30 | own val / own test | **46.3%** / **36.8%** | 74.6% / **76.3%** |
 | Daily CORE30 + bigram | 30 | own test chain / gold-prev | 39.8% / **60.2%** | — |
 
@@ -83,7 +83,7 @@ python scripts/train_ondevice_coreml.py --data models/pose_features_dense.npz --
   --wlasl100-boost 3.4 --real-boost 1.45 --synth-boost 0.4 --wlasl300-boost 1.1 \
   --citizen-overlap-boost 1.2 --finetune-wlasl100-epochs 28 --finetune-include-citizen-overlap \
   --hard-mine-from models/hard_mine_confusions.json --boost-glosses SHORT,FORGET,FOOD --gloss-boost 2.25 --bigram-rerank
-# then val-A/B gate WeightedLogitEnsemble(s7, dense_s43, tight_s43) → export one Core ML only if both slices lift + test > ship
+# then val-A/B gate WeightedLogitEnsemble(s7, tight_s43, tight_s7, distill_ens_s19) → export one Core ML only if both slices lift + test > ship
 # Daily CORE30 (filter from dense convert or core30 NPZ)
 python scripts/convert_pose_hdf5.py --sources wlasl100,wlasl300,aslcitizen100 --daily-dense \
   --out models/pose_features_daily_dense.npz

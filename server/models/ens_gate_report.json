@@ -1,22 +1,24 @@
 {
-  "ship_val_A": 0.45544554455445546,
-  "ship_val_B": 0.39705882352941174,
-  "ship_test": 0.45348837209302323,
-  "best_val_A": 0.5029585957527161,
-  "best_val_B": 0.4674556255340576,
-  "best_test": 0.45736435055732727,
+  "ship_val_A": 0.5029585957527161,
+  "ship_val_B": 0.4674556255340576,
+  "ship_test": 0.45736435055732727,
+  "best_val_A": 0.5207100510597229,
+  "best_val_B": 0.47337278723716736,
+  "best_test": 0.4651162922382355,
   "weights": [
-    0.46666666865348816,
-    0.20000000298023224,
-    0.3333333432674408
+    0.09090909361839294,
+    0.5454545617103577,
+    0.1818181872367859,
+    0.1818181872367859
   ],
   "members": [
     "models/sign_classifier_s7.pt",
-    "models/sign_classifier_dense_s43.pt",
-    "models/sign_classifier_tight_s43.pt"
+    "models/sign_classifier_tight_s43.pt",
+    "models/sign_classifier_tight_s7.pt",
+    "models/sign_classifier_distill_ens_s19.pt"
   ],
   "gate": true,
   "test_beats_ship": true,
-  "val_full": 0.48520711064338684,
-  "test_top5": 0.7015503644943237
+  "val_full": 0.4970414340496063,
+  "test_top5": 0.7209302186965942
 }

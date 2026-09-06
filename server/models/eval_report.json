@@ -1,128 +1,70 @@
 {
   "val_top1": null,
-  "val_top5": null,
   "test_top1": null,
-  "test_top5": null,
   "n_classes": 243,
-  "trained_on": "aslcitizen2731+aslcitizen300+synth+wlasl100+wlasl2000+wlasl300",
-  "arch": "tcn-bilstm-nmm-weighted-ens3-tight",
+  "arch": "tcn-bilstm-nmm-weighted-ens4",
   "wlasl100_subset": {
-    "val_top1": 0.48520711064338684,
-    "val_top5": 0.7130177617073059,
+    "val_top1": 0.4970414340496063,
+    "val_top5": 0.7307692170143127,
     "n_val": 338,
-    "test_top1": 0.45736435055732727,
-    "test_top5": 0.7015503644943237,
+    "test_top1": 0.4651162922382355,
+    "test_top5": 0.7209302186965942,
     "n_test": 258,
     "ensemble": true,
-    "n_members": 3,
+    "n_members": 4,
     "weights": [
-      0.46666666865348816,
-      0.20000000298023224,
-      0.3333333432674408
+      0.09090909361839294,
+      0.5454545617103577,
+      0.1818181872367859,
+      0.1818181872367859
     ],
-    "method": "val-A tuned + val-B gate; weighted logit ens (s7+dense_s43+tight_s43)"
+    "method": "val-A/B gated weighted logit ens4 (s7+tight_s43+tight_s7+distill_ens_s19)",
+    "val_A": 0.5207100510597229,
+    "val_B": 0.47337278723716736
   },
   "comparable_wlasl100": {
-    "val_top1": 0.48520711064338684,
-    "val_top5": 0.7130177617073059,
+    "val_top1": 0.4970414340496063,
+    "val_top5": 0.7307692170143127,
     "n_val": 338,
-    "test_top1": 0.45736435055732727,
-    "test_top5": 0.7015503644943237,
+    "test_top1": 0.4651162922382355,
+    "test_top5": 0.7209302186965942,
     "n_test": 258,
-    "method": "val-A/B gated weighted ens3 tight-synonym"
+    "method": "gated weighted ens4"
   },
   "previous_ship": {
-    "val_top1": 0.46449702978134155,
-    "test_top1": 0.45348837971687317,
-    "test_top5": 0.682170569896698,
-    "n_classes": 243,
-    "commit": "fb3e0f5"
+    "test_top1": 0.45736435055732727,
+    "commit": "f144fb9"
   },
-  "delta_vs_fb3e0f5_wlasl100_test_pp": 0.3875978464304042,
+  "delta_vs_f144fb9_wlasl100_test_pp": 0.7751941680908203,
+  "bigram_tune_wlasl100_val": {
+    "plain_top1": 0.4970414201183432,
+    "bigram_gold_prev_top1": 0.5177514792899408,
+    "bigram_chain_top1": 0.5029585798816568,
+    "n": 338,
+    "prior_weight": 0.1,
+    "k": 5
+  },
+  "bigram_wlasl100_test": {
+    "plain_top1": 0.46511627906976744,
+    "bigram_gold_prev_top1": 0.47674418604651164,
+    "bigram_chain_top1": 0.4689922480620155,
+    "n": 258,
+    "prior_weight": 0.1,
+    "k": 5
+  },
   "ensemble_members": [
-    "models/sign_classifier_s7.pt",
-    "models/sign_classifier_dense_s43.pt",
-    "models/sign_classifier_tight_s43.pt"
+    "/workspace/asl-subtitles/server/models/sign_classifier_s7.pt",
+    "/workspace/asl-subtitles/server/models/sign_classifier_tight_s43.pt",
+    "/workspace/asl-subtitles/server/models/sign_classifier_tight_s7.pt",
+    "/workspace/asl-subtitles/server/models/sign_classifier_distill_ens_s19.pt"
   ],
   "ensemble_weights": [
-    0.46666666865348816,
-    0.20000000298023224,
-    0.3333333432674408
+    0.09090909361839294,
+    0.5454545617103577,
+    0.1818181872367859,
+    0.1818181872367859
   ],
-  "ens_gate": {
-    "ship_val_A": 0.45544554455445546,
-    "ship_val_B": 0.39705882352941174,
-    "ship_test": 0.45348837209302323,
-    "best_val_A": 0.5029585957527161,
-    "best_val_B": 0.4674556255340576,
-    "best_test": 0.45736435055732727,
-    "weights": [
-      0.46666666865348816,
-      0.20000000298023224,
-      0.3333333432674408
-    ],
-    "members": [
-      "models/sign_classifier_s7.pt",
-      "models/sign_classifier_dense_s43.pt",
-      "models/sign_classifier_tight_s43.pt"
-    ],
-    "gate": true,
-    "test_beats_ship": true,
-    "val_full": 0.48520711064338684,
-    "test_top5": 0.7015503644943237
-  },
-  "tight_single": {
-    "path": "models/sign_classifier_tight_s43.pt",
-    "val_top1": 0.47337278723716736,
-    "test_top1": 0.43798449635505676
-  },
-  "densification": {
-    "n_samples": 11244,
-    "n_classes": 243,
-    "sources_loaded": [
-      "wlasl100",
-      "wlasl300",
-      "aslcitizen300",
-      "aslcitizen2731",
-      "wlasl2000"
-    ],
-    "split_counts": {
-      "synth": 120,
-      "test": 1753,
-      "train": 8464,
-      "val": 907
-    },
-    "source_counts": {
-      "aslcitizen2731": 3873,
-      "aslcitizen300": 3241,
-      "synth": 120,
-      "wlasl100": 2021,
-      "wlasl2000": 893,
-      "wlasl300": 1096
-    },
-    "n_citizen_rows": 7114,
-    "dedup": {
-      "enabled": true,
-      "dropped_dup": 5785,
-      "dropped_holdout_leak": 21
-    },
-    "train_only_extra": [
-      "aslcitizen2731",
-      "wlasl2000"
-    ],
-    "mode": "focus-wlasl100",
-    "synonym_policy": "tight-food-no-meal-bucket; FORGETFUL->FORGET; SHORTPERSON->SHORT",
-    "comparable_holdout_restored": true,
-    "wlasl100_val": 338,
-    "wlasl100_test": 258,
-    "weak_class_pose": {
-      "SHORT_train": 29,
-      "FORGET_train": 28,
-      "FOOD_train": 7,
-      "note": "FORGETFUL->FORGET SHORTPERSON->SHORT; meal->FOOD removed"
-    }
-  },
   "privacy": "offline public pose train; on-device Core ML inference; preferServer=false",
-  "notes": "Gated ens3 after tight synonym (no FOOD meal-bucket) + SHORT/FORGET Citizen densify + longer single tight_s43. Comparable WLASL100 plain top-1 45.7% vs 45.3% @fb3e0f5 (+0.4pp). preferServer=false.",
-  "seed": "ens-weighted-tight"
+  "notes": "Gated ens4 s7+tight_s43+tight_s7+distill_ens_s19. Comparable WLASL100 plain top-1 46.5% vs 45.7% @f144fb9 (+0.8 pp). val-A 52.1% / val-B 47.3% beat ship gates. preferServer=false.",
+  "seed": "ens4-gated"
 }
