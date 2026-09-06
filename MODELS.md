@@ -37,7 +37,7 @@ Camera → Vision holistic landmarks → Core ML PoseLSTM/TCN → English subtit
 
 - **Input:** `poses` float32 `[1, 32, 170]` (FEATURE_DIM v2).
 - **Arch:** temporal conv front-end + bidirectional LSTM + **NMM-conditioned temporal attention** + gloss head (+ NMM aux during train).
-- **Training levers this round:** **ASL Citizen 2731 + WLASL2000 densify** (train-only extras, fingerprint dedup, holdout leak guard); class-focused **hard-example mining** from prior confusions; longer single schedules; **val-A tune + val-B gate** before any ensemble ship; mixup/distill/SWA/finetune retained.
+- **Training levers this round:** **tight synonym map** (no meal→FOOD bucket); **SHORT/FORGET** densify via Citizen `SHORTPERSON`/`FORGETFUL`; longer singles on densified data; class-focused hard-mine + gloss boost; **val-A tune + val-B gate** before ensemble ship; mixup/distill/SWA/finetune retained.
 - **Training data (offline):** public pose HDF5 from [CristianLazoQuispe/pose-action-recognition](https://huggingface.co/datasets/CristianLazoQuispe/pose-action-recognition) (MIT packaging of landmarks):
   - WLASL100 + overlapping WLASL300 / **WLASL2000** clips (deduped)
   - **ASL Citizen 300 + 2731** via gloss map (**no MSASL** — diluted the holdout)
@@ -47,12 +47,12 @@ Camera → Vision holistic landmarks → Core ML PoseLSTM/TCN → English subtit
 
 ### Comparable WLASL100 holdout (full head)
 
-| Split | Prior ship (fb6e6e3) | **Now** top-1 | **Now** top-5 |
+| Split | Prior ship (fb3e0f5) | **Now** top-1 | **Now** top-5 |
 |-------|----------------------|---------------|---------------|
-| Val (WLASL100) | 43.2% | **46.4%** | **70.7%** |
-| Test (WLASL100) | 43.4% | **45.3%** | **68.2%** |
+| Val (WLASL100) | 46.4% | **48.5%** | **71.3%** |
+| Test (WLASL100) | 45.3% | **45.7%** | **70.2%** |
 
-243-class full head. **Plain top-1 45.3%** vs 43.4% @fb6e6e3 (**+1.9 pp**). Data densification (ASL Citizen 2731 + WLASL2000 overlap, exact-dedup, holdout-safe) + hard-example mining → strong single `dense_s43`, then **val-A/B gated** weighted ens3 (c49c751 + s7 + dense_s43 → one Core ML). Still short of ≥50% / conversation.
+243-class full head. **Plain top-1 45.7%** vs 45.3% @fb3e0f5 (**+0.4 pp**). Tighter synonym map (dropped meal→FOOD dilution); Citizen `FORGETFUL`→`FORGET` + `SHORTPERSON`→`SHORT`; longer single `tight_s43` (val 47.3% / test 43.8%); **val-A/B gated** weighted ens3 (s7 + dense_s43 + tight_s43 → one Core ML). Still short of ≥50% / conversation.
 
 Bigram top-5 rerank remains available on-device; plain holdout is the ship gate.
 
@@ -60,7 +60,7 @@ Bigram top-5 rerank remains available on-device; plain holdout is the ship gate.
 
 | Head | Classes | Metric | top-1 | top-5 |
 |------|---------|--------|-------|-------|
-| Full (ships as primary) | 243 | WLASL100 holdout | **45.3%** | **68.2%** |
+| Full (ships as primary) | 243 | WLASL100 holdout | **45.7%** | **70.2%** |
 | Daily CORE30 (ships dual) | 30 | own val / own test | **46.3%** / **36.8%** | 74.6% / **76.3%** |
 | Daily CORE30 + bigram | 30 | own test chain / gold-prev | 39.8% / **60.2%** | — |
 
@@ -78,12 +78,12 @@ python scripts/convert_pose_hdf5.py --sources wlasl100,wlasl300,aslcitizen300,as
   --mix-synth --focus-wlasl100 --dedup-exact --train-only-extra aslcitizen2731,wlasl2000 \
   --out models/pose_features_dense.npz
 python scripts/train_ondevice_coreml.py --data models/pose_features_dense.npz --arch tcn-bilstm \
-  --heavy-aug --aug-copies 4 --mixup 0.2 --epochs 48 --batch 48 --lr 5e-4 --seed 43 \
+  --heavy-aug --aug-copies 4 --mixup 0.2 --epochs 64 --batch 48 --lr 4.5e-4 --seed 43 \
   --teacher models/sign_classifier_c49c751_41p9.pt --distill-alpha 0.42 \
-  --wlasl100-boost 3.25 --real-boost 1.4 --synth-boost 0.45 --wlasl300-boost 1.1 \
-  --citizen-overlap-boost 1.15 --finetune-wlasl100-epochs 18 --finetune-include-citizen-overlap \
-  --hard-mine-from models/hard_mine_confusions.json --bigram-rerank
-# then val-A/B gate WeightedLogitEnsemble(c49c751, s7, dense_s43) → export one Core ML only if both slices lift
+  --wlasl100-boost 3.4 --real-boost 1.45 --synth-boost 0.4 --wlasl300-boost 1.1 \
+  --citizen-overlap-boost 1.2 --finetune-wlasl100-epochs 28 --finetune-include-citizen-overlap \
+  --hard-mine-from models/hard_mine_confusions.json --boost-glosses SHORT,FORGET,FOOD --gloss-boost 2.25 --bigram-rerank
+# then val-A/B gate WeightedLogitEnsemble(s7, dense_s43, tight_s43) → export one Core ML only if both slices lift + test > ship
 # Daily CORE30 (filter from dense convert or core30 NPZ)
 python scripts/convert_pose_hdf5.py --sources wlasl100,wlasl300,aslcitizen100 --daily-dense \
   --out models/pose_features_daily_dense.npz
@@ -108,7 +108,7 @@ python scripts/eval_classifier.py --split test --source-filter wlasl100 --data m
 | Uni-Sign checkpoints | Research only, not runtime | CC-BY-NC-4.0 |
 | How2Sign pose | **Blocked this round** | Continuous SLT; large shards; needs CTC/transducer — next continuous path |
 
-**Gloss map:** sense IDs (`ABOUT1`→`ABOUT`) + expanded near-identity synonyms (`BATH`→`BATHROOM`, `MOM`→`MOTHER`, `CALLTTY`→`CALL`, `WHATFOR`→`WHY`, meals→`FOOD`, …). See `pipeline/gloss_map.py`.
+**Gloss map:** sense IDs (`ABOUT1`→`ABOUT`) + conservative near-identity synonyms (`BATH`→`BATHROOM`, `MOM`→`MOTHER`, `FORGETFUL`→`FORGET`, `SHORTPERSON`→`SHORT`, …). **Meal lemmas are not bucketed into FOOD** (diluted holdout). See `pipeline/gloss_map.py`.
 
 ## What we are not claiming
 

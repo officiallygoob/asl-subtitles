@@ -250,5 +250,5 @@
     32,
     170
   ],
-  "arch": "tcn-bilstm-nmm-weighted-ens3-dense"
+  "arch": "tcn-bilstm-nmm-weighted-ens3-tight"
 }

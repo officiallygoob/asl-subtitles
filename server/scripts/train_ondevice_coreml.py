@@ -161,7 +161,7 @@ def main() -> int:
     ap.add_argument("--bigram-rerank", action="store_true", help="Report bigram top-5 rerank metrics")
     ap.add_argument("--wlasl100-boost", type=float, default=1.75, help="Upsample weight for real WLASL100 train rows")
     ap.add_argument("--real-boost", type=float, default=1.25, help="Upsample weight for non-synth train rows")
-    ap.add_argument("--swa-start", type=int, default=-1, help="Start SWA averaging at this epoch (-1=last 25%)")
+    ap.add_argument("--swa-start", type=int, default=-1, help="Start SWA averaging at this epoch (-1=last quarter of epochs)")
     ap.add_argument("--ensemble-seeds", default="", help="Comma seeds for extra students; logits averaged into one Core ML")
     ap.add_argument("--teacher-epochs", type=int, default=0, help="Override teacher epochs (0=max(16, epochs//2))")
     ap.add_argument("--finetune-wlasl100-epochs", type=int, default=0,
@@ -205,6 +205,17 @@ def main() -> int:
         type=int,
         default=40,
         help="How many top confusion pairs to mine",
+    )
+    ap.add_argument(
+        "--boost-glosses",
+        default="",
+        help="Comma glosses to upweight (e.g. SHORT,FORGET,FOOD)",
+    )
+    ap.add_argument(
+        "--gloss-boost",
+        type=float,
+        default=2.0,
+        help="Sample weight multiplier for --boost-glosses",
     )
     args = ap.parse_args()
 
@@ -353,6 +364,15 @@ def main() -> int:
             print(f"hard-mine pair boost x{args.hard_pair_boost}: rows={int(m.sum())} classes={len(hard_pair_ids)} pairs={len(conf_pairs)}")
     elif args.hard_mine_from:
         print(f"warn: --hard-mine-from missing: {args.hard_mine_from}")
+
+    boost_glosses = [g.strip().upper() for g in args.boost_glosses.split(",") if g.strip()]
+    if boost_glosses and args.gloss_boost != 1.0:
+        label_to_id = {g: i for i, g in enumerate(labels)}
+        ids = [label_to_id[g] for g in boost_glosses if g in label_to_id]
+        if ids:
+            m = np.isin(ytr, ids)
+            boost[m] *= float(args.gloss_boost)
+            print(f"gloss-boost x{args.gloss_boost}: rows={int(m.sum())} glosses={[labels[i] for i in ids]}")
 
     sample_w = sample_w * boost
     print(

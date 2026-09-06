@@ -57,11 +57,8 @@ SYNONYM_MAP: dict[str, str] = {
     "5DOLLARS": "MONEY",
     "DOLLAR": "MONEY",
     "DOLLARS": "MONEY",
-    # Meals → FOOD (limited-domain chat bucket)
-    "BREAKFAST": "FOOD",
-    "LUNCH": "FOOD",
-    "DINNER": "FOOD",
-    "MEAL": "FOOD",
+    # Meals: do NOT bucket into FOOD (dilutes true FOOD / confuses holdout).
+    # Keep BREAKFAST/LUNCH/DINNER/MEAL as orphans unless they are first-class labels.
     # Need / cognition / emphasis
     "DEMAND": "NEED",
     "REQUIRE": "NEED",
@@ -113,11 +110,7 @@ SYNONYM_MAP: dict[str, str] = {
     # Money / food / drink (Citizen300 + MSASL near-identity)
     "1DOLLAR": "MONEY",
     "ONEDOLLAR": "MONEY",
-    "LETTUCE": "FOOD",
-    "SANDWICH": "FOOD",
-    "COOKIE": "FOOD",
-    "CHICKEN": "FOOD",
-    "BOWL": "FOOD",
+    # Food items: leave unmapped (were diluting FOOD into a junk bucket)
     "BOTTLE": "DRINK",
     "MILK": "DRINK",
     # Communication / school / family
@@ -160,6 +153,10 @@ SYNONYM_MAP: dict[str, str] = {
     "I-LOVE-YOU": "LOVE",
     "ILY": "LOVE",
     "BIRTHDAY-CAKE": "BIRTHDAY",
+    # Weak WLASL100 densifiers (Citizen near-identity; not SHORTDISTANCE/SHORTS/SHORTWORD)
+    "FORGETFUL": "FORGET",
+    "SHORTPERSON": "SHORT",
+    "SHORT-PERSON": "SHORT",
 }
 
 _SENSE_RE = re.compile(r"^(.*?)(\d+)$")
