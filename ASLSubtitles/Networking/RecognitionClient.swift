@@ -189,7 +189,30 @@ final class RecognitionClient: ObservableObject {
         case .connected:
             send(RecognitionWire.UtteranceEnd(frames: frames))
         default:
-            break
+            // On-device: flush full utterance through multi-crop Core ML.
+            applyOfflineUtterance(frames)
+        }
+    }
+
+    private func applyOfflineUtterance(_ frames: [LandmarkFrame]) {
+        guard !frames.isEmpty else { return }
+        let result = offlineRecognizer.recognizeUtterance(frames: frames)
+        lastNMM = offlineRecognizer.lastNMM
+        let smoothed = offlineSmoother.push(result)
+        partialEnglish = smoothed.text
+        let glossToken = result.gloss.isEmpty
+            ? (smoothed.text.isEmpty ? [] : [smoothed.text.uppercased()])
+            : [result.gloss]
+        partialGloss = glossToken
+        lastConfidence = max(smoothed.confidence, result.confidence)
+        onPartialUpdate?(partialEnglish, partialGloss, lastConfidence)
+        let text = result.label.isEmpty ? smoothed.text : result.label
+        let conf = result.confidence
+        let different = text.compare(lastEmittedFinalLabel, options: [.caseInsensitive, .diacriticInsensitive]) != .orderedSame
+        if conf >= offlineFinalConfidence * 0.85, !text.isEmpty, different {
+            lastFinalEnglish = text
+            lastEmittedFinalLabel = text
+            onFinalSentence?(text, conf)
         }
     }
 

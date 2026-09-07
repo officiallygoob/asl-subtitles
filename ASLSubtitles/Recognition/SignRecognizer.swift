@@ -18,7 +18,8 @@ final class SignRecognizer {
     private var framesSinceOscillationReset = 0
     /// Holistic FEATURE_DIM windows for Core ML (hands+face+body+NMM).
     private var featureWindow: [[Double]] = []
-    private let windowSize = 32
+    /// Keep enough frames for val-gated multi-crop (matches utterance cap).
+    private let windowSize = 96
 
     private(set) var lastNMM: NMMState = .zero
 
@@ -67,6 +68,46 @@ final class SignRecognizer {
             timestamp: raw.timestamp,
             gloss: (raw.gloss.isEmpty ? raw.label : raw.gloss).uppercased(),
             nmm: lastNMM
+        )
+    }
+
+    /// Utterance-end path: classify the full signed segment with multi-crop Core ML.
+    func recognizeUtterance(frames: [LandmarkFrame]) -> RecognitionResult {
+        guard !frames.isEmpty else { return .empty }
+        var feats: [[Double]] = []
+        feats.reserveCapacity(frames.count)
+        for frame in frames {
+            var stamped = frame
+            if stamped.nmm == nil {
+                lastNMM = nmmAnalyzer.push(frame)
+                stamped.nmm = lastNMM.channelValues
+            } else if let vals = stamped.nmm {
+                // Keep analyzer warm without overwriting channels.
+                _ = vals
+            }
+            feats.append(stamped.featureVector())
+        }
+        // Refresh rolling window so live path stays coherent after the flush.
+        featureWindow = Array(feats.suffix(windowSize))
+        let raw: RecognitionResult
+        if let ml = coreML.classify(window: feats) {
+            raw = ml
+            if ml.confidence >= 0.55 {
+                coreML.previousGloss = (ml.gloss.isEmpty ? ml.label : ml.gloss).uppercased()
+            }
+        } else {
+            raw = recognizeHands(Self.hands(from: frames.last!))
+        }
+        guard !raw.label.isEmpty else { return raw }
+        let nmm = lastNMM
+        let english = GlossEnglish.english(gloss: raw.gloss.isEmpty ? raw.label : raw.gloss, nmm: nmm)
+        return RecognitionResult(
+            label: english,
+            kind: raw.kind,
+            confidence: raw.confidence,
+            timestamp: raw.timestamp,
+            gloss: (raw.gloss.isEmpty ? raw.label : raw.gloss).uppercased(),
+            nmm: nmm
         )
     }
 

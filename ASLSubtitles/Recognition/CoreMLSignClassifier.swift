@@ -117,36 +117,82 @@ final class CoreMLSignClassifier {
     /// Previous accepted gloss for on-device bigram top-k rerank (nil = plain argmax).
     var previousGloss: String?
 
+    /// Val-gated multi-crop count (WLASL100 val selected nc=5 @ max context 96).
+    private let multiCropCount = 5
+    /// Match utterance buffer cap used in ASLSessionController.
+    private let maxContextFrames = 96
+
     func classify(window: [[Double]]) -> RecognitionResult? {
         guard isAvailable, let model, !window.isEmpty else { return nil }
 
-        // Resample / pad to fixed 32 × D
-        let prepared = prepareWindow(window)
-        let t = prepared.count
-        let d = prepared[0].count
-        let flat = prepared.flatMap { $0 }
-        guard d > 0, flat.count == t * d else { return nil }
+        let normalized = normalizeDims(window)
+        let crops = temporalCrops(normalized, cropCount: multiCropCount, maxContext: maxContextFrames)
+        guard !crops.isEmpty else { return nil }
 
         do {
-            let arr = try MLMultiArray(shape: [1, NSNumber(value: t), NSNumber(value: d)], dataType: .float32)
-            for i in 0..<flat.count {
-                arr[i] = NSNumber(value: Float(flat[i]))
-            }
-
             let inputName = preferredInputName(model)
-            let provider = try MLDictionaryFeatureProvider(dictionary: [inputName: MLFeatureValue(multiArray: arr)])
-            let out = try model.prediction(from: provider)
-            return parseOutput(out)
+            var acc: [Double]?
+            var nOk = 0
+            for crop in crops {
+                let prepared = padOrTrim32(crop)
+                let t = prepared.count
+                let d = prepared[0].count
+                let flat = prepared.flatMap { $0 }
+                guard d > 0, flat.count == t * d else { continue }
+                let arr = try MLMultiArray(shape: [1, NSNumber(value: t), NSNumber(value: d)], dataType: .float32)
+                for i in 0..<flat.count {
+                    arr[i] = NSNumber(value: Float(flat[i]))
+                }
+                let provider = try MLDictionaryFeatureProvider(dictionary: [inputName: MLFeatureValue(multiArray: arr)])
+                let out = try model.prediction(from: provider)
+                guard let logits = extractLogits(out) else {
+                    // Fall back to single-crop dictionary parse if logits unavailable.
+                    if crops.count == 1 { return parseOutput(out) }
+                    continue
+                }
+                if acc == nil {
+                    acc = logits
+                } else if acc!.count == logits.count {
+                    for i in 0..<logits.count { acc![i] += logits[i] }
+                } else {
+                    continue
+                }
+                nOk += 1
+            }
+            guard var summed = acc, !summed.isEmpty, nOk > 0 else { return nil }
+            let inv = 1.0 / Double(nOk)
+            for i in 0..<summed.count { summed[i] *= inv }
+            return resultFromLogitsArray(summed)
         } catch {
             return nil
         }
     }
 
-    private func prepareWindow(_ window: [[Double]]) -> [[Double]] {
+    /// Evenly spaced 32-frame crops over up to `maxContext` trailing frames (val-gated).
+    private func temporalCrops(_ frames: [[Double]], cropCount: Int, maxContext: Int) -> [[[Double]]] {
+        var seq = frames
+        if seq.count > maxContext {
+            seq = Array(seq.suffix(maxContext))
+        }
+        if seq.count <= windowSize {
+            return [seq]
+        }
+        let maxStart = seq.count - windowSize
+        let n = max(1, cropCount)
+        if n == 1 {
+            return [Array(seq.suffix(windowSize))]
+        }
+        var starts = Set<Int>()
+        for i in 0..<n {
+            let s = Int((Double(i) * Double(maxStart) / Double(n - 1)).rounded())
+            starts.insert(min(max(s, 0), maxStart))
+        }
+        return starts.sorted().map { Array(seq[$0 ..< ($0 + windowSize)]) }
+    }
+
+    private func normalizeDims(_ window: [[Double]]) -> [[Double]] {
         var frames = window
-        // If hand-only (~47 dims), refuse — caller should pass holistic vectors.
         if let d = frames.first?.count, d != featureDim, d < 100 {
-            // Still try: zero-pad to featureDim so an old Create ML hand model can fail softly.
             frames = frames.map { row in
                 if row.count >= featureDim { return Array(row.prefix(featureDim)) }
                 return row + Array(repeating: 0.0, count: featureDim - row.count)
@@ -156,6 +202,11 @@ final class CoreMLSignClassifier {
         } else if let d = frames.first?.count, d < featureDim {
             frames = frames.map { $0 + Array(repeating: 0.0, count: featureDim - $0.count) }
         }
+        return frames
+    }
+
+    private func padOrTrim32(_ window: [[Double]]) -> [[Double]] {
+        var frames = window
         if frames.count < windowSize {
             let pad = Array(repeating: frames.first ?? Array(repeating: 0.0, count: featureDim), count: windowSize - frames.count)
             frames = pad + frames
@@ -163,6 +214,54 @@ final class CoreMLSignClassifier {
             frames = Array(frames.suffix(windowSize))
         }
         return frames
+    }
+
+    private func extractLogits(_ out: MLFeatureProvider) -> [Double]? {
+        for name in ["logits", "output", "Identity", "var_40"] {
+            if let arr = out.featureValue(for: name)?.multiArrayValue, arr.count > 1 {
+                return (0..<arr.count).map { arr[$0].doubleValue }
+            }
+        }
+        for name in out.featureNames {
+            if let arr = out.featureValue(for: name)?.multiArrayValue, arr.count > 1 {
+                // Skip tiny vectors / scalar probs
+                if arr.count >= 8 { return (0..<arr.count).map { arr[$0].doubleValue } }
+            }
+        }
+        return nil
+    }
+
+    private func resultFromLogitsArray(_ logits: [Double]) -> RecognitionResult? {
+        let n = logits.count
+        guard n > 0 else { return nil }
+        let maxL = logits.max() ?? 0
+        var exps = logits.map { exp($0 - maxL) }
+        let sum = exps.reduce(0, +)
+        guard sum > 0 else { return nil }
+        exps = exps.map { $0 / sum }
+        let bestIdx: Int
+        if labels.count == exps.count {
+            bestIdx = GlossBigramPrior.rerank(probs: exps, labels: labels, prevGloss: previousGloss)
+        } else if let idx = exps.indices.max(by: { exps[$0] < exps[$1] }) {
+            bestIdx = idx
+        } else {
+            return nil
+        }
+        let conf = exps[bestIdx]
+        guard conf >= confidenceThreshold else { return nil }
+        let label: String
+        if bestIdx < labels.count {
+            label = labels[bestIdx]
+        } else {
+            label = "CLASS_\(bestIdx)"
+        }
+        return RecognitionResult(
+            label: label.uppercased(),
+            kind: .everydaySign,
+            confidence: conf,
+            timestamp: Date(),
+            gloss: label.uppercased()
+        )
     }
 
     private func preferredInputName(_ model: MLModel) -> String {
@@ -222,37 +321,7 @@ final class CoreMLSignClassifier {
     }
 
     private func resultFromLogits(_ arr: MLMultiArray) -> RecognitionResult? {
-        let n = arr.count
-        guard n > 0 else { return nil }
-        var logits = [Double](repeating: 0, count: n)
-        for i in 0..<n { logits[i] = arr[i].doubleValue }
-        let maxL = logits.max() ?? 0
-        var exps = logits.map { exp($0 - maxL) }
-        let sum = exps.reduce(0, +)
-        guard sum > 0 else { return nil }
-        exps = exps.map { $0 / sum }
-        let bestIdx: Int
-        if labels.count == exps.count {
-            bestIdx = GlossBigramPrior.rerank(probs: exps, labels: labels, prevGloss: previousGloss)
-        } else if let idx = exps.indices.max(by: { exps[$0] < exps[$1] }) {
-            bestIdx = idx
-        } else {
-            return nil
-        }
-        let conf = exps[bestIdx]
-        guard conf >= confidenceThreshold else { return nil }
-        let label: String
-        if bestIdx < labels.count {
-            label = labels[bestIdx]
-        } else {
-            label = "CLASS_\(bestIdx)"
-        }
-        return RecognitionResult(
-            label: label.uppercased(),
-            kind: .everydaySign,
-            confidence: conf,
-            timestamp: Date(),
-            gloss: label.uppercased()
-        )
+        let logits = (0..<arr.count).map { arr[$0].doubleValue }
+        return resultFromLogitsArray(logits)
     }
 }
