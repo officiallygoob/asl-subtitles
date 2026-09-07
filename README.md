@@ -34,7 +34,7 @@ Inspired by privacy-preserving landmark architectures (MediaPipe Holistic → st
 
 ## Requirements
 
-- Mac with **Xcode 15+**, iPhone/iPad **iOS 27+** (Liquid Glass + Apple Intelligence APIs) (physical device recommended)
+- Mac with **Xcode beta (iOS 27 SDK)**, iPhone/iPad **iOS 27+** (Liquid Glass + Apple Intelligence APIs) (physical device recommended)
 - Python 3.11+ **or** Docker for the recognition server
 - Same Wi‑Fi / LAN when using the server from a real device
 

@@ -89,9 +89,8 @@ final class CoreMLSignClassifier {
         let alt = url.deletingPathExtension().appendingPathExtension("labels.json")
         for candidate in [side, alt] {
             if let data = try? Data(contentsOf: candidate),
-               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let labs = obj["labels"] as? [String] {
-                labels = labs
+               let parsed = Self.parseLabelList(from: data) {
+                labels = parsed
                 return
             }
         }
@@ -99,9 +98,19 @@ final class CoreMLSignClassifier {
         if let meta = model?.modelDescription.metadata[.creatorDefinedKey] as? [String: String],
            let raw = meta["labels"],
            let data = raw.data(using: .utf8),
-           let labs = try? JSONSerialization.jsonObject(with: data) as? [String] {
+           let labs = Self.parseLabelList(from: data) {
             labels = labs
         }
+    }
+
+    /// Accepts `["HELLO", …]` or `{"labels":[…]}` (training script / older exports).
+    private static func parseLabelList(from data: Data) -> [String]? {
+        guard let obj = try? JSONSerialization.jsonObject(with: data) else { return nil }
+        if let labs = obj as? [String], !labs.isEmpty { return labs }
+        if let dict = obj as? [String: Any], let labs = dict["labels"] as? [String], !labs.isEmpty {
+            return labs
+        }
+        return nil
     }
 
     /// Classify a temporal window of landmark feature vectors (preferably FEATURE_DIM=170).

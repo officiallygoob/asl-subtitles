@@ -107,6 +107,19 @@
 		A1INAPP000000000000006 /* UsernameModerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsernameModerator.swift; sourceTree = "<group>"; };
 		A1ML000000000000000001 /* ASLSignClassifier.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = ASLSignClassifier.mlpackage; sourceTree = "<group>"; };
 		A1ML000000000000000002 /* ASLSignClassifier.labels.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "ASLSignClassifier.labels.json"; sourceTree = "<group>"; };
+		A1NMM00000000000000002 /* NonManualMarkers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonManualMarkers.swift; sourceTree = "<group>"; };
+		A1NMM00000000000000005 /* GlossEnglish.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlossEnglish.swift; sourceTree = "<group>"; };
+		A1NMM00000000000000008 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		A1NMM0000000000000000B /* ASLAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASLAppIntents.swift; sourceTree = "<group>"; };
+		A1NMM0000000000000000D /* AppleIntelligenceText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleIntelligenceText.swift; sourceTree = "<group>"; };
+		A1NMM0000000000000000F /* ConversationEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationEntity.swift; sourceTree = "<group>"; };
+		A1NMM00000000000000011 /* SuggestedReplies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedReplies.swift; sourceTree = "<group>"; };
+		A1NMM00000000000000013 /* ConversationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationStore.swift; sourceTree = "<group>"; };
+		A1NMM00000000000000015 /* HistorySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistorySheet.swift; sourceTree = "<group>"; };
+		A1LEARN000000000000002 /* LearnProgressStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearnProgressStore.swift; sourceTree = "<group>"; };
+		A1LEARN000000000000004 /* LearnDeck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearnDeck.swift; sourceTree = "<group>"; };
+		A1LEARN000000000000006 /* LearnSessionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearnSessionController.swift; sourceTree = "<group>"; };
+		A1LEARN000000000000008 /* LearnTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearnTabView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -265,8 +278,6 @@
 				A1NMM0000000000000000B /* ASLAppIntents.swift */,
 				A1NMM0000000000000000D /* AppleIntelligenceText.swift */,
 				A1NMM0000000000000000F /* ConversationEntity.swift */,
-				A1NMM0000000000000000D /* AppleIntelligenceText.swift */,
-				A1NMM0000000000000000F /* ConversationEntity.swift */,
 				A1NMM00000000000000011 /* SuggestedReplies.swift */,
 			);
 			path = Intents;
@@ -405,10 +416,6 @@
 				B3402DA72254452E9C961860 /* SettingsSheet.swift in Sources */,
 				1B4F5D33CCBA44D6A895F8C3 /* TemporalSmoother.swift in Sources */,
 				3B348EFDA152477CB68D28DA /* VocabularyCatalog.swift in Sources */,
-				A1CALL0000000000000001 /* CallModeController.swift in Sources */,
-				A1CALL0000000000000003 /* ASLSharePlayActivity.swift in Sources */,
-				A1CALL0000000000000005 /* BroadcastPickerView.swift in Sources */,
-				A1CALL0000000000000007 /* CallModePanel.swift in Sources */,
 				A1CALL0000000000000001 /* CallModeController.swift in Sources */,
 				A1CALL0000000000000003 /* ASLSharePlayActivity.swift in Sources */,
 				A1CALL0000000000000005 /* BroadcastPickerView.swift in Sources */,
@@ -578,6 +585,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "ASL Subtitles";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -608,6 +616,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "ASL Subtitles";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
