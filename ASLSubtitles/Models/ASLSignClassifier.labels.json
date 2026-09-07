@@ -243,12 +243,5 @@
     "THANKSGIVING",
     "THIN",
     "WOMAN"
-  ],
-  "input": "poses",
-  "shape": [
-    1,
-    32,
-    170
-  ],
-  "arch": "tcn-bilstm-ens2"
+  ]
 }

@@ -2,37 +2,36 @@
   "val_top1": null,
   "test_top1": null,
   "n_classes": 243,
-  "arch": "tcn-bilstm-weighted-ens2-bias+multicrop5",
+  "arch": "tcn-bilstm-weighted-ens2+multicrop5",
   "wlasl100_subset": {
-    "val_top1": 0.6124260425567627,
-    "val_top5": 0.8786982297897339,
+    "val_top1": 0.6213017702102661,
+    "val_top5": 0.8491124510765076,
     "n_val": 338,
-    "test_top1": 0.5930232405662537,
-    "test_top5": 0.856589138507843,
+    "test_top1": 0.5968992114067078,
+    "test_top5": 0.8255813717842102,
     "n_test": 258,
-    "method": "val-AB weighted ens2 (s71@0.525+s29@0.475)+bias; multicrop nc=5 max_context=96",
-    "plain_last32_note": "ensemble ships with same multicrop inference as 63c2fd7",
+    "method": "val-AB weighted ens2 (s71_bias@0.500+s97@0.500); multicrop nc=5 max96",
     "multi_crop_count": 5,
     "max_context_frames": 96,
-    "mix_alpha_s71": 0.525
+    "mix_alpha_s71_bias": 0.5
   },
   "comparable_wlasl100": {
-    "val_top1": 0.6124260425567627,
-    "val_top5": 0.8786982297897339,
-    "test_top1": 0.5930232405662537,
-    "test_top5": 0.856589138507843,
+    "val_top1": 0.6213017702102661,
+    "val_top5": 0.8491124510765076,
+    "test_top1": 0.5968992114067078,
+    "test_top5": 0.8255813717842102,
     "n_val": 338,
     "n_test": 258,
-    "method": "val-AB ens2+bias + multicrop nc=5 max96; plain argmax"
+    "method": "val-AB ens2 multicrop plain"
   },
   "previous_ship": {
-    "test_top1": 0.5852712988853455,
-    "commit": "63c2fd7"
+    "test_top1": 0.5930232405662537,
+    "commit": "7a0f14b"
   },
-  "delta_vs_63c2fd7_wlasl100_test_pp": 0.7751941680908203,
+  "delta_vs_7a0f14b_wlasl100_test_pp": 0.38759708404541016,
   "privacy": "offline public pose train; on-device Core ML ens2 + multi-crop; preferServer=false",
-  "notes": "Val-AB gated logit mix of distill_ens5_s71 + distill_ship_s29 (\u03b1_s71=0.525) + val-A/B class-bias; same multicrop nc=5/max96. Comparable WLASL100 plain top-1 59.30% (153/258) vs 58.53% @63c2fd7. Single Core ML WeightedLogitEnsemble graph. preferServer=false.",
-  "seed": "s71+s29 mix",
+  "notes": "val-AB ens2 s71_bias+s97 a=0.500 (median val-tied plateau); multicrop nc=5 max96. Comparable WLASL100 plain top-1 59.69% (154/258) vs 59.30% @7a0f14b.",
+  "seed": "s71_bias+s97",
   "ensemble_retired": false,
   "ensemble_n": 2,
   "inference": {
