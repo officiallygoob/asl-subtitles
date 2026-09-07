@@ -565,6 +565,19 @@ def main() -> int:
     swa_start = args.swa_start if args.swa_start > 0 else max(1, int(args.epochs * 0.75))
     swa_state = None
     swa_n = 0
+    # Preserve warm-start as val-selected baseline so epoch-1 updates cannot erase a strong init.
+    if args.init_from and Path(args.init_from).exists():
+        model.eval()
+        with torch.no_grad():
+            if w100_val.any():
+                w_logits = forward_logits(model, Xn[w100_val])
+                init_score = float((w_logits.argmax(-1) == torch.from_numpy(y[w100_val])).float().mean())
+            else:
+                va_logits0 = forward_logits(model, Xva)
+                init_score = float((va_logits0.argmax(-1) == yva_t).float().mean())
+        best_acc = init_score
+        best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+        print(f"warm-start baseline wlasl100_val@1={init_score:.3f} (kept until beaten)")
     for epoch in range(1, args.epochs + 1):
         # warmup + cosine LR
         lr_now = lr_at(epoch)

@@ -2,7 +2,7 @@
   "val_top1": null,
   "test_top1": null,
   "n_classes": 243,
-  "arch": "tcn-bilstm-nmm-single-bias",
+  "arch": "tcn-bilstm-nmm-bias",
   "wlasl100_subset": {
     "val_top1": 0.5118343234062195,
     "val_top5": 0.7514792680740356,
@@ -10,26 +10,26 @@
     "test_top1": 0.4844961166381836,
     "test_top5": 0.7325581312179565,
     "n_test": 258,
-    "method": "single student: cached ens5 KD s71 + val-A/B class-bias",
+    "method": "cached ens5 KD s71 + val-A/B class-bias",
     "val_A": 0.5325443744659424,
     "val_B": 0.4911242723464966
   },
   "comparable_wlasl100": {
     "val_top1": 0.5118343234062195,
     "val_top5": 0.7514792680740356,
-    "n_val": 338,
     "test_top1": 0.4844961166381836,
     "test_top5": 0.7325581312179565,
+    "n_val": 338,
     "n_test": 258,
-    "method": "single student cached-ens5-KD + val-A/B class-bias"
+    "method": "s71 + val-A/B gated class bias"
   },
   "previous_ship": {
     "test_top1": 0.4806201457977295,
     "commit": "a7dbaed"
   },
-  "delta_vs_a7dbaed_wlasl100_test_pp": 0.38759708404541016,
+  "delta_vs_ship_wlasl100_test_pp": 0.38759708404541016,
   "privacy": "offline public pose train; on-device Core ML inference; preferServer=false",
-  "notes": "Single student (ens5 KD distill_ens5_s71 + val-A/B gated class-bias). Comparable WLASL100 plain top-1 48.4% vs 48.1% @a7dbaed. Ens weight grids skipped this round; ens retired as primary. preferServer=false.",
-  "seed": "71+bias",
+  "notes": "Single student: cached ens5 KD (s71) + val-A/B gated class-bias bake-in. Ens weight grids skipped. preferServer=false.",
+  "seed": 71,
   "ensemble_retired": true
 }

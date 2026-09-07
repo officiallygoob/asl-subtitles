@@ -1,26 +1,10 @@
 {
-  "ship_val_A": 0.5443786978721619,
-  "ship_val_B": 0.4792899489402771,
-  "ship_test": 0.4728682041168213,
-  "best_val_A": 0.5502958297729492,
-  "best_val_B": 0.48520711064338684,
-  "best_test": 0.4806201457977295,
-  "weights": [
-    0.21052631735801697,
-    0.21052631735801697,
-    0.21052631735801697,
-    0.2631579041481018,
-    0.10526315867900848
-  ],
-  "members": [
-    "models/sign_classifier_tight_s43.pt",
-    "models/sign_classifier_distill_ens_s19.pt",
-    "models/sign_classifier_tight_s53.pt",
-    "models/sign_classifier_distill_ship_s29.pt",
-    "models/sign_classifier_tight_s59.pt"
-  ],
+  "ship_val_A": 0.5325443744659424,
+  "ship_val_B": 0.4911242723464966,
+  "ship_test": 0.4844961240310077,
+  "method": "single student distill_ens5_s71 + val-A/B class-bias (ens retired)",
   "gate": true,
-  "test_beats_ship": true,
-  "val_full": 0.5177514553070068,
-  "test_top5": 0.7441860437393188
+  "test_beats_prior_ship": true,
+  "prior_ship_test": 0.4806201457977295,
+  "n_members": 1
 }

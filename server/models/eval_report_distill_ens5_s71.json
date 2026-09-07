@@ -1,0 +1,129 @@
+{
+  "val_top1": 0.31312018632888794,
+  "test_top1": 0.19167141616344452,
+  "n_classes": 243,
+  "n_train": 42440,
+  "arch": "tcn-bilstm-nmm",
+  "wlasl100_subset": {
+    "val_top1": 0.5029585957527161,
+    "val_top5": 0.7307692170143127,
+    "n_val": 338,
+    "test_top1": 0.4806201457977295,
+    "test_top5": 0.7248061895370483,
+    "n_test": 258
+  },
+  "comparable_wlasl100": {
+    "val_top1": 0.5029585957527161,
+    "val_top5": 0.7307692170143127,
+    "test_top1": 0.4806201457977295,
+    "test_top5": 0.7248061895370483,
+    "n_val": 338,
+    "n_test": 258
+  },
+  "previous_ship": {
+    "test_top1": 0.4806201457977295,
+    "commit": "a7dbaed"
+  },
+  "delta_vs_ship_wlasl100_test_pp": 0.0,
+  "wlasl100_boost": 3.6,
+  "finetune_wlasl100_epochs": 16,
+  "distill": true,
+  "teacher": "cached ens5 ship weights",
+  "seed": 71,
+  "hidden": 192,
+  "history_tail": [
+    {
+      "epoch": 46,
+      "loss": 1.1331180421728553,
+      "val_top1": 0.32194045186042786,
+      "test_top1": 0.24358242750167847
+    },
+    {
+      "epoch": 47,
+      "loss": 1.134643475027381,
+      "val_top1": 0.3197353780269623,
+      "test_top1": 0.24643468856811523
+    },
+    {
+      "epoch": 48,
+      "loss": 1.1017959067329386,
+      "val_top1": 0.32083791494369507,
+      "test_top1": 0.24244153499603271
+    },
+    {
+      "epoch": 49,
+      "loss": 1.1361881667999139,
+      "val_top1": 0.3175303339958191,
+      "test_top1": 0.2470051348209381
+    },
+    {
+      "epoch": 50,
+      "loss": 1.1145100780976032,
+      "val_top1": 0.31091511249542236,
+      "test_top1": 0.2407301813364029
+    }
+  ],
+  "privacy": "offline public pose train; on-device Core ML inference; preferServer=false",
+  "top_confusions": [
+    [
+      "WEATHER->BASKETBALL",
+      9
+    ],
+    [
+      "WHY->FORGET",
+      8
+    ],
+    [
+      "WHY->DOG",
+      7
+    ],
+    [
+      "WHY->FAMILY",
+      7
+    ],
+    [
+      "FOUR->FINISH",
+      6
+    ],
+    [
+      "TEXT->HOW",
+      6
+    ],
+    [
+      "NO->DEAF",
+      5
+    ],
+    [
+      "ANSWER->GO",
+      5
+    ],
+    [
+      "ASK->DEAF",
+      5
+    ],
+    [
+      "FAMILY->DEAF",
+      5
+    ],
+    [
+      "THINK->FAMILY",
+      5
+    ],
+    [
+      "CALL->GO",
+      5
+    ],
+    [
+      "IMPORTANT->NO",
+      5
+    ],
+    [
+      "IMPORTANT->DEAF",
+      5
+    ],
+    [
+      "RAIN->CORN",
+      5
+    ]
+  ]
+}
