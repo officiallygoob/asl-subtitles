@@ -37,7 +37,7 @@ Camera → Vision holistic landmarks → Core ML PoseLSTM/TCN → English subtit
 
 - **Input:** `poses` float32 `[1, 32, 170]` (FEATURE_DIM v2).
 - **Arch:** temporal conv front-end + bidirectional LSTM + **NMM-conditioned temporal attention** + gloss head (+ NMM aux during train).
-- **Training levers this round:** Val-AB gated **weighted ens2** (`distill_ens5_s71_bias` ⊕ `distill_ens5_s97`, α=0.50; median of val-tied plateau) under the same temporal **multi-crop** (nc=5, max context 96) logit average. Ships as one on-device Core ML `WeightedLogitEnsemble` graph (2× TCN-BiLSTM). preferServer=false.
+- **Training levers this round:** Val-AB gated **weighted ens3** (`distill_ens5_s97` ⊕ `distill_ship_s29` ⊕ `distill_mc_s71`, w≈0.32/0.34/0.34 + val-A class-bias) under the same temporal **multi-crop** (nc=5, max context 96) logit average. Ships as one on-device Core ML `WeightedLogitEnsemble` graph (3× TCN-BiLSTM). preferServer=false.
 - **Training data (offline):** public pose HDF5 from [CristianLazoQuispe/pose-action-recognition](https://huggingface.co/datasets/CristianLazoQuispe/pose-action-recognition) (MIT packaging of landmarks):
   - WLASL100 + overlapping WLASL300 / **WLASL2000** clips (deduped)
   - **ASL Citizen 300 + 2731** via gloss map (**no MSASL** — diluted the holdout)
@@ -47,12 +47,12 @@ Camera → Vision holistic landmarks → Core ML PoseLSTM/TCN → English subtit
 
 ### Comparable WLASL100 holdout (full head)
 
-| Split | Prior ship (7a0f14b ens2+bias) | **Now** top-1 | **Now** top-5 |
-|-------|--------------------------------|---------------|---------------|
-| Val (WLASL100) | 61.2% | **62.1%** | **84.9%** |
-| Test (WLASL100) | 59.30% | **59.7%** | **82.6%** |
+| Split | Prior ship (9ac655d ens2) | **Now** top-1 | **Now** top-5 |
+|-------|---------------------------|---------------|---------------|
+| Val (WLASL100) | 62.1% | **65.4%** | **87.6%** |
+| Test (WLASL100) | 59.69% | **61.2%** | **85.3%** |
 
-243-class full head. **Plain top-1 59.69%** (154/258) vs 59.30% @7a0f14b (**+0.39 pp**) via **val-AB weighted ens2** (s71_bias@0.50 + s97@0.50) under the same multicrop (nc=5 / max context 96; logit average; no bigram; no extra class-bias). Alpha = median of val-tied plateau (AB/val/val5). Single on-device Core ML graph; `preferServer=false`. Still not fluent conversation.
+243-class full head. **Plain top-1 61.24%** (158/258) vs 59.69% @9ac655d (**+1.55 pp**) via **val-AB weighted ens3** (s97⊕s29⊕mc_s71 @0.32/0.34/0.34 + val-A class-bias) under the same multicrop (nc=5 / max context 96; logit average; no bigram). Weights = median of val-tied A/B plateau (both A and B ≥ prior ship). Crop policy unchanged. Single on-device Core ML graph; `preferServer=false`. Still not fluent conversation.
 
 Bigram top-5 rerank remains available on-device; **plain multi-crop** holdout is the ship gate this round.
 
@@ -60,7 +60,7 @@ Bigram top-5 rerank remains available on-device; **plain multi-crop** holdout is
 
 | Head | Classes | Metric | top-1 | top-5 |
 |------|---------|--------|-------|-------|
-| Full (ships as primary) | 243 | WLASL100 holdout (multi-crop) | **59.7%** | **82.6%** |
+| Full (ships as primary) | 243 | WLASL100 holdout (multi-crop) | **61.2%** | **85.3%** |
 | Daily CORE30 (ships dual) | 30 | own val / own test | **46.3%** / **36.8%** | 74.6% / **76.3%** |
 | Daily CORE30 + bigram | 30 | own test chain / gold-prev | 39.8% / **60.2%** | — |
 

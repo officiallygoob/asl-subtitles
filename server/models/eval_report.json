@@ -2,38 +2,44 @@
   "val_top1": null,
   "test_top1": null,
   "n_classes": 243,
-  "arch": "tcn-bilstm-weighted-ens2+multicrop5",
+  "arch": "tcn-bilstm-weighted-ens3+multicrop5",
   "wlasl100_subset": {
-    "val_top1": 0.6213017702102661,
-    "val_top5": 0.8491124510765076,
+    "val_top1": 0.6538461446762085,
+    "val_top5": 0.8757396340370178,
     "n_val": 338,
-    "test_top1": 0.5968992114067078,
-    "test_top5": 0.8255813717842102,
+    "test_top1": 0.6124030947685242,
+    "test_top5": 0.8527131676673889,
     "n_test": 258,
-    "method": "val-AB weighted ens2 (s71_bias@0.500+s97@0.500); multicrop nc=5 max96",
+    "method": "val-AB weighted ens3 (s97+s29+mc_s71)+bias; multicrop nc=5 max96",
     "multi_crop_count": 5,
     "max_context_frames": 96,
-    "mix_alpha_s71_bias": 0.5
+    "mix_weights": [
+      0.32,
+      0.34,
+      0.3399999999999999
+    ],
+    "val_A": 0.692307710647583,
+    "val_B": 0.6153846383094788
   },
   "comparable_wlasl100": {
-    "val_top1": 0.6213017702102661,
-    "val_top5": 0.8491124510765076,
-    "test_top1": 0.5968992114067078,
-    "test_top5": 0.8255813717842102,
+    "val_top1": 0.6538461446762085,
+    "val_top5": 0.8757396340370178,
+    "test_top1": 0.6124030947685242,
+    "test_top5": 0.8527131676673889,
     "n_val": 338,
     "n_test": 258,
-    "method": "val-AB ens2 multicrop plain"
+    "method": "val-AB ens3 multicrop plain"
   },
   "previous_ship": {
-    "test_top1": 0.5930232405662537,
-    "commit": "7a0f14b"
+    "test_top1": 0.5968992114067078,
+    "commit": "9ac655d"
   },
-  "delta_vs_7a0f14b_wlasl100_test_pp": 0.38759708404541016,
-  "privacy": "offline public pose train; on-device Core ML ens2 + multi-crop; preferServer=false",
-  "notes": "val-AB ens2 s71_bias+s97 a=0.500 (median val-tied plateau); multicrop nc=5 max96. Comparable WLASL100 plain top-1 59.69% (154/258) vs 59.30% @7a0f14b.",
-  "seed": "s71_bias+s97",
+  "delta_vs_9ac655d_wlasl100_test_pp": 1.5503883361816406,
+  "privacy": "offline public pose train; on-device Core ML ens3 + multi-crop; preferServer=false",
+  "notes": "val-AB ens3 s97\u2295s29\u2295mc_s71 w=[0.32,0.34,0.34]+val-A class-bias; multicrop nc=5 max96. Comparable WLASL100 plain top-1 61.24% (158/258) vs 59.69% @9ac655d (+1.55 pp).",
+  "seed": "s97+s29+mc_s71",
   "ensemble_retired": false,
-  "ensemble_n": 2,
+  "ensemble_n": 3,
   "inference": {
     "multi_crop": 5,
     "max_context": 96,

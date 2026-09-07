@@ -1,0 +1,19 @@
+{
+  "members": [
+    "sign_classifier_distill_ens5_s97.pt",
+    "sign_classifier_distill_ship_s29.pt",
+    "sign_classifier_distill_mc_s71.pt"
+  ],
+  "weights": [
+    0.32,
+    0.34,
+    0.3399999999999999
+  ],
+  "val_A": 0.692307710647583,
+  "val_B": 0.6153846383094788,
+  "val_top1": 0.6538461446762085,
+  "test_top1": 0.6124030947685242,
+  "correct": 158,
+  "delta_pp": 1.5503883361816406,
+  "bias": true
+}
