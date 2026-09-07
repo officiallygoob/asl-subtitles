@@ -330,6 +330,89 @@ if nn is not None:
                 return avg, aux
             return avg
 
+    class LogitsPlusBias(nn.Module):
+        """Add a class-bias vector after an ensemble / student (Core ML–friendly)."""
+
+        def __init__(self, base: nn.Module, bias) -> None:
+            super().__init__()
+            self.base = base
+            if not isinstance(bias, torch.Tensor):
+                bias = torch.as_tensor(bias, dtype=torch.float32)
+            self.register_buffer("class_bias", bias.float().view(-1))
+            self.input_dim = base.input_dim
+            self.num_classes = base.num_classes
+
+        def forward(self, x, return_aux: bool = False):
+            if return_aux:
+                logits, aux = self.base(x, return_aux=True)
+                return logits + self.class_bias, aux
+            return self.base(x) + self.class_bias
+
+    def load_ship_checkpoint(path, dropout: float = 0.0):
+        """Load shipping .pt — single student or weighted ens2 + optional class-bias."""
+        from pathlib import Path as _P
+        ck = torch.load(_P(path), map_location="cpu", weights_only=False)
+        labels = list(ck["labels"])
+        n_classes = len(labels)
+        input_dim = int(ck.get("input_dim", 170))
+        hidden_dim = int(ck.get("hidden_dim", 192))
+        num_layers = int(ck.get("num_layers", 2))
+        sd = ck["state_dict"]
+        # Ensemble saved as LogitsPlusBias(WeightedLogitEnsemble(...))
+        if any(k.startswith("base.models.") for k in sd) or ck.get("ensemble"):
+            n_members = int(ck.get("n_members") or 0)
+            if n_members <= 0:
+                # infer from state dict
+                idxs = set()
+                for k in sd:
+                    if k.startswith("base.models."):
+                        idxs.add(int(k.split(".")[2]))
+                    elif k.startswith("models."):
+                        idxs.add(int(k.split(".")[1]))
+                n_members = max(idxs) + 1 if idxs else 2
+            weights = ck.get("member_weights") or [1.0] * n_members
+            members = []
+            for _ in range(n_members):
+                members.append(
+                    build_sequence_model(
+                        "tcn-bilstm",
+                        input_dim=input_dim,
+                        hidden_dim=hidden_dim,
+                        num_layers=num_layers,
+                        num_classes=n_classes,
+                        bidirectional=True,
+                        dropout=dropout,
+                    )
+                )
+            ens = WeightedLogitEnsemble(members, weights)
+            bias = ck.get("class_bias")
+            if bias is None and "class_bias" in sd:
+                bias = sd["class_bias"]
+            if bias is not None:
+                model = LogitsPlusBias(ens, bias)
+            else:
+                model = ens
+            model.load_state_dict(sd, strict=False)
+            model.eval()
+            return model, labels, ck
+        arch = ck.get("arch") or "tcn-bilstm"
+        if isinstance(arch, str) and arch.endswith("-nmm"):
+            arch = arch[: -len("-nmm")]
+        if "ens" in str(arch):
+            arch = "tcn-bilstm"
+        model = build_sequence_model(
+            arch,
+            input_dim=input_dim,
+            hidden_dim=hidden_dim,
+            num_layers=num_layers,
+            num_classes=n_classes,
+            bidirectional=True,
+            dropout=dropout,
+        )
+        model.load_state_dict(sd, strict=False)
+        model.eval()
+        return model, labels, ck
+
     def build_sequence_model(arch: str, **kwargs) -> nn.Module:
         arch = (arch or "poselstm").lower().replace("_", "-")
         if arch in {"poselstm", "poselstm-v3", "lstm"}:

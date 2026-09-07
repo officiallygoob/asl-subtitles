@@ -21,7 +21,7 @@ sys.path.insert(0, str(ROOT))
 from pipeline.coco135 import coco135_sequence_to_features, pad_or_trim  # noqa: E402
 from pipeline.gloss_map import canonicalize_gloss  # noqa: E402
 from pipeline.normalize import FEATURE_DIM  # noqa: E402
-from pipeline.sequence_model import build_sequence_model  # noqa: E402
+from pipeline.sequence_model import load_ship_checkpoint  # noqa: E402
 from scripts.train_ondevice_coreml import normalize_matrix, topk_acc  # noqa: E402
 
 
@@ -80,25 +80,10 @@ def main() -> int:
     ap.add_argument("--ckpt", type=Path, default=ROOT / "models" / "sign_classifier.pt")
     ap.add_argument("--crops", type=int, default=5)
     ap.add_argument("--max-context", type=int, default=96)
-    ap.add_argument("--ship", type=float, default=0.4844961166381836)
+    ap.add_argument("--ship", type=float, default=0.5852712988853455)
     args = ap.parse_args()
 
-    ck = torch.load(args.ckpt, map_location="cpu", weights_only=False)
-    labels = list(ck["labels"])
-    arch = ck.get("arch") or "tcn-bilstm"
-    if isinstance(arch, str) and arch.endswith("-nmm"):
-        arch = arch[: -len("-nmm")]
-    model = build_sequence_model(
-        arch,
-        input_dim=int(ck.get("input_dim", FEATURE_DIM)),
-        hidden_dim=int(ck.get("hidden_dim", 192)),
-        num_layers=int(ck.get("num_layers", 2)),
-        num_classes=len(labels),
-        bidirectional=True,
-        dropout=0.0,
-    )
-    model.load_state_dict(ck["state_dict"], strict=False)
-    model.eval()
+    model, labels, ck = load_ship_checkpoint(args.ckpt)
 
     va_x, va_y = load_wlasl100("Val", labels)
     te_x, te_y = load_wlasl100("Test", labels)

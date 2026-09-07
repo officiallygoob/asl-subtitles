@@ -250,5 +250,5 @@
     32,
     170
   ],
-  "arch": "tcn-bilstm"
+  "arch": "tcn-bilstm-ens2"
 }
