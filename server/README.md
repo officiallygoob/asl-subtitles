@@ -12,6 +12,10 @@ FastAPI service that accepts **landmark geometry only** (hands / body / face) an
 - Clients should stream `LandmarkFrame` JSON (joints + timestamps).
 - Run on localhost / LAN for friend conversations.
 
+## Call tokens (separate from recognition)
+
+1:1 video uses LiveKit. Tokens are minted by `server/livekit/token_server.py` (username + room code only). That process is **not** this recognition server and does not change on-device recognition defaults. See the root README “In-app Call tab” section.
+
 ## Quick start
 
 ```bash

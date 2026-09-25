@@ -62,7 +62,7 @@ On a physical iPhone, set **Settings → Continuous recognition** to
 2. Select the **ASLSubtitles** scheme → your iPhone.
 3. Signing: Team = your Personal Team (`com.officiallygoob.aslsubtitles`).
 4. Build & Run (⌘R). Allow **Camera**, **Microphone**, and **Speech Recognition**.
-5. Tabs: **In Person** (camera conversation), **Call** (in-app video scaffold), **Learn** (flashcards), **History**.
+5. Tabs: **In Person** (camera conversation), **Call** (1:1 LiveKit video), **Learn** (flashcards), **History**.
 
 ### First conversation tips
 
@@ -128,13 +128,64 @@ Flashcard practice using the same recognition stack:
 
 ## In-app Call tab
 
-Primary remote path we’re building toward: **1:1 WebRTC / LiveKit** where ASL Subtitles owns both video feeds and runs recognition on the friend’s frames with persistent captions + speech→text.
+1:1 video runs on **LiveKit**. Identity is still a **username + invite link or code**. There is no phone number, Contacts, or SMS UI.
 
-**Now:** lobby with **username + share link/code** (no phone numbers / Contacts), local/remote layout, Liquid Glass caption chrome, mic/camera controls (signaling stubbed).  
-Client-side username filter blocks abusive/derogatory names (format + blocklist); **server must re-validate when accounts exist**.  
-**Next:** wire SDP/ICE or LiveKit room; pipe remote `CMSampleBuffer`s into `HolisticPoseDetector` → existing NMM + recognition.
+The link scheme is unchanged: `aslsubtitles://call/<roomID>?from=<username>`. The LiveKit room name is that room code. Each participant’s LiveKit identity is their username, so the two phones need **different** usernames. `UsernameModerator` still blocks invalid names on device (they are not saved). The token server checks the same rules again before it mints a JWT.
 
-FaceTime screen-capture remains **advanced** (Call ⋯ menu / Settings), not the hero.
+### Run a 1:1 call
+
+You need a LiveKit project the phones can reach, plus this repo’s token server on your LAN. The token server never sees video. Sign recognition stays on-device (`preferServer` is still off by default).
+
+**LiveKit Cloud (free tier, simplest):** create a project at [LiveKit Cloud](https://cloud.livekit.io) and copy the WebSocket URL, API key, and API secret.
+
+**Or self-host LiveKit** (dev only):
+
+```bash
+docker run --rm -p 7880:7880 \
+  -e LIVEKIT_KEYS="devkey: secret" \
+  livekit/livekit-server --dev
+```
+
+Then `LIVEKIT_URL=ws://<lan-ip>:7880`, `LIVEKIT_API_KEY=devkey`, `LIVEKIT_API_SECRET=secret`. Phones must be able to open that WebSocket. Cloud `wss://` is easier because only the token server has to be on your LAN.
+
+**Token server** (required either way — keys stay off the phone):
+
+```bash
+cd server/livekit
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+export LIVEKIT_URL=wss://YOUR_PROJECT.livekit.cloud
+export LIVEKIT_API_KEY=...
+export LIVEKIT_API_SECRET=...
+python token_server.py
+```
+
+Listens on `0.0.0.0:8787`. Check: `curl http://127.0.0.1:8787/health`.  
+Optional checks: `python test_token_server.py`.  
+See `server/livekit/.env.example`. Do not put this server on the public internet.
+
+**On two iPhones:**
+
+1. Open `ASLSubtitles.xcodeproj`, let Swift Package Manager fetch LiveKit (`client-sdk-swift` 2.17+), and run the **ASLSubtitles** scheme on each phone.
+2. Call tab → set **Token server** to `http://<mac-lan-ip>:8787/v1/token`. `127.0.0.1` only works in the simulator.
+3. Each phone chooses a different username.
+4. Phone A: **Share call link**. Phone B: paste the code or the link, or open `aslsubtitles://call/<roomID>?from=<username>`.
+5. Local video is your LiveKit camera (front by default). Remote video is the other phone. Mic, camera, and flip control those LiveKit tracks. Ending the call gives the camera back to In Person.
+
+The in-person recognizer’s camera is stopped for the duration of the call so it doesn’t fight LiveKit for the device.
+
+### Remote signing captions (hook, not finished)
+
+Remote pixels stay on the phone:
+
+1. `RemoteSignFrameBridge` receives LiveKit `VideoFrame`s.
+2. `VideoFrame.toCMSampleBuffer()` builds a `CMSampleBuffer`.
+3. `HolisticPoseDetector.detect(in:isFrontCamera:)` runs with `isFrontCamera: false`.
+4. The `LandmarkFrame` is passed to `ASLSessionController.noteRemoteCallLandmarks`.
+
+**TODO:** that method does not yet call `processFrame`, so the Call tab does not caption the remote signer. The next change should pause the local camera delegate and feed these frames through `frameBuffer` → segmenter → `recognition.sendFrame` / `endUtterance`, and drop the bridge’s extra detector so Vision runs once. Recognition defaults are unchanged.
+
+FaceTime screen-capture remains **advanced** (Call ⋯ menu), not the hero.
 
 ## FaceTime & video calls
 
@@ -148,7 +199,7 @@ ASL Subtitles **cannot draw inside FaceTime’s own chrome** or tap a private Fa
 ### Steps
 
 1. Start your FaceTime call.
-2. Open ASL Subtitles → **Call** → **Use with FaceTime** (or start Broadcast from Control Center).
+2. Open ASL Subtitles → **Call** → **⋯** (FaceTime capture) (or start Broadcast from Control Center).
 3. Keep ASL Subtitles for captions, or enable PiP.
 4. Optional: **SharePlay on FaceTime** from the Call panel.
 

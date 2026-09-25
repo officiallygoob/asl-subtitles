@@ -29,7 +29,20 @@
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>ASL Subtitles converts your speech to text so your conversation partner can read what you say.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>ASL Subtitles connects to a recognition server on your local network to translate landmark streams into English.</string>
+	<string>ASL Subtitles uses your local network for an optional recognition server and for the call token server you configure. Video frames stay on device; the token server only exchanges usernames and room codes.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>com.officiallygoob.aslsubtitles.call</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>aslsubtitles</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

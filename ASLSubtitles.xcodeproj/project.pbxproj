@@ -55,6 +55,11 @@
 		A1INAPP000000000000001 /* InAppCallController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1INAPP000000000000002 /* InAppCallController.swift */; };
 		A1INAPP000000000000003 /* CallTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1INAPP000000000000004 /* CallTabView.swift */; };
 		A1INAPP000000000000005 /* UsernameModerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1INAPP000000000000006 /* UsernameModerator.swift */; };
+		A1CALLINV0000000000001 /* CallInviteLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1CALLINV0000000000002 /* CallInviteLink.swift */; };
+		A1CALLINV0000000000003 /* LiveKitTokenClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1CALLINV0000000000004 /* LiveKitTokenClient.swift */; };
+		A1CALLINV0000000000005 /* RemoteSignFrameBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1CALLINV0000000000006 /* RemoteSignFrameBridge.swift */; };
+		A1CALLINV0000000000007 /* CallDeepLinkCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1CALLINV0000000000008 /* CallDeepLinkCenter.swift */; };
+		A1LIVKIT00000000000003 /* LiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = A1LIVKIT00000000000002 /* LiveKit */; };
 		A1LEARN000000000000001 /* LearnProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1LEARN000000000000002 /* LearnProgressStore.swift */; };
 		A1LEARN000000000000003 /* LearnDeck.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1LEARN000000000000004 /* LearnDeck.swift */; };
 		A1LEARN000000000000005 /* LearnSessionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1LEARN000000000000006 /* LearnSessionController.swift */; };
@@ -105,6 +110,10 @@
 		A1INAPP000000000000002 /* InAppCallController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppCallController.swift; sourceTree = "<group>"; };
 		A1INAPP000000000000004 /* CallTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallTabView.swift; sourceTree = "<group>"; };
 		A1INAPP000000000000006 /* UsernameModerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsernameModerator.swift; sourceTree = "<group>"; };
+		A1CALLINV0000000000002 /* CallInviteLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallInviteLink.swift; sourceTree = "<group>"; };
+		A1CALLINV0000000000004 /* LiveKitTokenClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveKitTokenClient.swift; sourceTree = "<group>"; };
+		A1CALLINV0000000000006 /* RemoteSignFrameBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteSignFrameBridge.swift; sourceTree = "<group>"; };
+		A1CALLINV0000000000008 /* CallDeepLinkCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallDeepLinkCenter.swift; sourceTree = "<group>"; };
 		A1ML000000000000000001 /* ASLSignClassifier.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = ASLSignClassifier.mlpackage; sourceTree = "<group>"; };
 		A1ML000000000000000002 /* ASLSignClassifier.labels.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "ASLSignClassifier.labels.json"; sourceTree = "<group>"; };
 		A1NMM00000000000000002 /* NonManualMarkers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonManualMarkers.swift; sourceTree = "<group>"; };
@@ -127,6 +136,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1LIVKIT00000000000003 /* LiveKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -300,6 +310,10 @@
 				A1INAPP000000000000002 /* InAppCallController.swift */,
 				A1INAPP000000000000004 /* CallTabView.swift */,
 				A1INAPP000000000000006 /* UsernameModerator.swift */,
+				A1CALLINV0000000000002 /* CallInviteLink.swift */,
+				A1CALLINV0000000000004 /* LiveKitTokenClient.swift */,
+				A1CALLINV0000000000006 /* RemoteSignFrameBridge.swift */,
+				A1CALLINV0000000000008 /* CallDeepLinkCenter.swift */,
 			);
 			path = Call;
 			sourceTree = "<group>";
@@ -340,6 +354,9 @@
 			dependencies = (
 			);
 			name = ASLSubtitles;
+			packageProductDependencies = (
+				A1LIVKIT00000000000002 /* LiveKit */,
+			);
 			productName = ASLSubtitles;
 			productReference = A10000000000000000000006 /* ASLSubtitles.app */;
 			productType = "com.apple.product-type.application";
@@ -368,6 +385,9 @@
 				Base,
 			);
 			mainGroup = A10000000000000000000007;
+			packageReferences = (
+				A1LIVKIT00000000000001 /* XCRemoteSwiftPackageReference "client-sdk-swift" */,
+			);
 			productRefGroup = A10000000000000000000008 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -423,6 +443,10 @@
 				A1INAPP000000000000001 /* InAppCallController.swift in Sources */,
 				A1INAPP000000000000003 /* CallTabView.swift in Sources */,
 				A1INAPP000000000000005 /* UsernameModerator.swift in Sources */,
+				A1CALLINV0000000000001 /* CallInviteLink.swift in Sources */,
+				A1CALLINV0000000000003 /* LiveKitTokenClient.swift in Sources */,
+				A1CALLINV0000000000005 /* RemoteSignFrameBridge.swift in Sources */,
+				A1CALLINV0000000000007 /* CallDeepLinkCenter.swift in Sources */,
 				A1LEARN000000000000001 /* LearnProgressStore.swift in Sources */,
 				A1LEARN000000000000003 /* LearnDeck.swift in Sources */,
 				A1LEARN000000000000005 /* LearnSessionController.swift in Sources */,
@@ -655,6 +679,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A1LIVKIT00000000000001 /* XCRemoteSwiftPackageReference "client-sdk-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/livekit/client-sdk-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.17.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A1LIVKIT00000000000002 /* LiveKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1LIVKIT00000000000001 /* XCRemoteSwiftPackageReference "client-sdk-swift" */;
+			productName = LiveKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A10000000000000000000001 /* Project object */;
 }

@@ -3,6 +3,7 @@ import SwiftUI
 /// Root tabs: In Person | Call | Learn | History.
 struct ContentView: View {
     @StateObject private var session = ASLSessionController()
+    @EnvironmentObject private var callLinks: CallDeepLinkCenter
     @State private var tab: AppTab = .inPerson
 
     enum AppTab: Hashable {
@@ -32,9 +33,13 @@ struct ContentView: View {
         .tint(AppTheme.accent)
         .preferredColorScheme(.dark)
         .onAppear { session.prepare() }
+        .onChange(of: callLinks.focusToken) { _, _ in
+            tab = .call
+        }
     }
 }
 
 #Preview {
     ContentView()
+        .environmentObject(CallDeepLinkCenter())
 }

@@ -366,6 +366,30 @@ final class ASLSessionController: NSObject, ObservableObject {
         callMode.stopCallMode()
     }
 
+    /// Remote 1:1 frames that already passed through `HolisticPoseDetector` on device.
+    ///
+    /// `RemoteSignFrameBridge` converts each LiveKit `VideoFrame` with
+    /// `VideoFrame.toCMSampleBuffer()`, runs `HolisticPoseDetector.detect(in:isFrontCamera:)`
+    /// (remote video is not a mirrored selfie, so `isFrontCamera` is false), and forwards the
+    /// `LandmarkFrame` here. Pixels are not uploaded.
+    ///
+    /// TODO(call-captions): while a LiveKit room is active, stop the local camera delegate and
+    /// pass these frames through `processFrame` so `frameBuffer` → utterance segmenter →
+    /// `recognition.sendFrame` / `endUtterance` fill `captionDisplayText` from the remote signer.
+    /// Remove the bridge's own detector when that lands so Vision only runs once.
+    /// `preferServer` stays off by default — this hook does not change recognition defaults.
+    func noteRemoteCallLandmarks(_ frame: LandmarkFrame) {
+        remoteCallLandmarkFrames &+= 1
+        latestRemoteCallActivity = frame.activity
+    }
+
+    /// How many remote call frames have produced landmarks. Not published (avoids 10 fps UI updates).
+    private(set) var remoteCallLandmarkFrames: Int = 0
+    /// Activity of the latest remote landmark frame, for the caption TODO above.
+    private(set) var latestRemoteCallActivity: Double = 0
+
+    /// Local camera and FaceTime-capture path. Remote call landmarks should join this path
+    /// via the TODO on `noteRemoteCallLandmarks`.
     nonisolated fileprivate func processFrame(_ sampleBuffer: CMSampleBuffer, isFront: Bool) {
         visionQueue.async { [weak self, detector, frameBuffer, segmenter, nmmAnalyzer] in
             guard let self else { return }
