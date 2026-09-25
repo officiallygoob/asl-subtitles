@@ -1,0 +1,2 @@
+# Token minting only. The recognition server requirements stay separate.
+livekit-api==1.2.1

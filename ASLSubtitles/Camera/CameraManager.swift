@@ -82,6 +82,22 @@ final class CameraManager: NSObject, ObservableObject {
         }
     }
 
+    /// Stops the capture session and waits until `stopRunning` has returned.
+    /// Call this before LiveKit publishes its own camera so the two sessions don't fight.
+    func stopAndWait() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            sessionQueue.async { [weak self] in
+                if let self, self.session.isRunning {
+                    self.session.stopRunning()
+                }
+                DispatchQueue.main.async {
+                    self?.isRunning = false
+                }
+                continuation.resume()
+            }
+        }
+    }
+
     func toggleCamera() {
         let nextFront = !isFrontCamera
         sessionQueue.async { [weak self] in

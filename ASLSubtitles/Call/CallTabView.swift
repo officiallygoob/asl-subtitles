@@ -1,10 +1,11 @@
+import LiveKit
 import SwiftUI
 
-/// In-app video call tab — primary remote path (WebRTC/LiveKit to be wired).
-/// FaceTime capture remains a secondary advanced option.
+/// In-app 1:1 LiveKit call. FaceTime capture remains a secondary advanced option.
 struct CallTabView: View {
     @ObservedObject var session: ASLSessionController
     @StateObject private var call = InAppCallController()
+    @EnvironmentObject private var callLinks: CallDeepLinkCenter
     @State private var showFaceTimeAdvanced = false
     @State private var showCopied = false
 
@@ -34,6 +35,13 @@ struct CallTabView: View {
                     }
                     .accessibilityLabel("Advanced: FaceTime capture")
                 }
+            }
+            .onAppear {
+                bindCallSession()
+                consumePendingInvite()
+            }
+            .onChange(of: callLinks.pendingInvite) { _, _ in
+                consumePendingInvite()
             }
             .sheet(isPresented: $showFaceTimeAdvanced) {
                 NavigationStack {
@@ -75,7 +83,7 @@ struct CallTabView: View {
         GeometryReader { geo in
             let remoteH = geo.size.height * 0.72
             ZStack(alignment: .bottomTrailing) {
-                // Remote (friend) — recognition target once WebRTC frames arrive
+                // Remote (friend). Landmarks from this track go to HolisticPoseDetector on device.
                 ZStack {
                     RoundedRectangle(cornerRadius: 28, style: .continuous)
                         .fill(
@@ -85,18 +93,36 @@ struct CallTabView: View {
                                 endPoint: .bottomTrailing
                             )
                         )
-                    VStack(spacing: 10) {
-                        Image(systemName: call.phase == .connected ? "person.wave.2.fill" : "person.fill")
-                            .font(.system(size: 44))
-                            .foregroundStyle(AppTheme.accent.opacity(0.8))
-                        Text(call.phase == .connected ? call.remoteName : "Waiting for friend")
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                        Text(call.statusMessage)
-                            .font(.caption)
-                            .foregroundStyle(AppTheme.captionMuted)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
+                    if call.showsLocalPreview, let track = call.remoteVideoTrack, !call.remoteCameraMuted {
+                        SwiftUIVideoView(track, layoutMode: .fill, mirrorMode: .off)
+                            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Text(call.remoteName)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(.black.opacity(0.45), in: Capsule())
+                                Spacer()
+                            }
+                            .padding(16)
+                        }
+                    } else {
+                        VStack(spacing: 10) {
+                            Image(systemName: call.phase == .connected ? "person.wave.2.fill" : "person.fill")
+                                .font(.system(size: 44))
+                                .foregroundStyle(AppTheme.accent.opacity(0.8))
+                            Text(call.phase == .connected ? call.remoteName : "Waiting for friend")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                            Text(call.statusMessage)
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.captionMuted)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+                        }
                     }
                 }
                 .frame(height: remoteH)
@@ -107,12 +133,21 @@ struct CallTabView: View {
                 .padding(.horizontal, 12)
                 .padding(.top, 8)
 
-                // Local PiP preview — reuse device camera when in-call
+                // Local PiP — LiveKit camera, not the in-person recognition session.
                 ZStack {
-                    if call.phase == .connected || call.phase == .waitingForPeer || call.phase == .connecting {
-                        if call.isCameraOn {
-                            CameraPreviewView(session: session.captureSession)
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    if call.showsLocalPreview {
+                        if call.isCameraOn, let track = call.localVideoTrack {
+                            SwiftUIVideoView(
+                                track,
+                                layoutMode: .fill,
+                                mirrorMode: call.prefersFrontCamera ? .mirror : .off
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        } else if call.isCameraOn {
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(Color(white: 0.15))
+                            ProgressView()
+                                .tint(.white)
                         } else {
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
                                 .fill(Color(white: 0.15))
@@ -175,7 +210,7 @@ struct CallTabView: View {
             Text("In-app video calling")
                 .font(.title3.weight(.bold))
                 .foregroundStyle(.white)
-            Text("Invite with a link or code and a username — we never ask for phone numbers. Signaling is stubbed; next step is WebRTC or LiveKit.")
+            Text("Invite with a link or code and a username — we never ask for phone numbers. Video uses LiveKit; sign recognition stays on this phone.")
                 .font(.footnote)
                 .foregroundStyle(AppTheme.captionMuted)
                 .multilineTextAlignment(.center)
@@ -188,6 +223,8 @@ struct CallTabView: View {
                     TextField("Username (no phone #)", text: $call.username)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                        .textContentType(.username)
+                        .keyboardType(.asciiCapable)
                 }
                 .padding(12)
                 .background(AppTheme.panelElevated, in: Capsule())
@@ -205,13 +242,30 @@ struct CallTabView: View {
                 }
             }
 
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Token server (LAN address, not a phone number)")
+                    .font(.caption2)
+                    .foregroundStyle(AppTheme.captionMuted)
+                    .padding(.horizontal, 8)
+                TextField("http://192.168.1.10:8787/v1/token", text: $call.tokenServerURL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .textContentType(.URL)
+                    .keyboardType(.URL)
+                    .padding(12)
+                    .background(AppTheme.panelElevated, in: Capsule())
+            }
+
+            if let err = call.lastError {
+                Text(err)
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.danger)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 8)
+            }
+
             Button {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                if session.permissionStatus == .authorized {
-                    session.start()
-                } else {
-                    session.requestPermissionAndStart()
-                }
                 call.createInvite()
             } label: {
                 Label("Share call link", systemImage: "square.and.arrow.up")
@@ -232,7 +286,6 @@ struct CallTabView: View {
                     .background(AppTheme.panelElevated, in: Capsule())
                 Button("Join") {
                     call.joinWithLinkOrCode()
-                    session.start()
                 }
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(AppTheme.accent)
@@ -250,6 +303,12 @@ struct CallTabView: View {
 
     private var inCallControls: some View {
         VStack(spacing: 12) {
+            if let err = call.lastError {
+                Text(err)
+                    .font(.caption2)
+                    .foregroundStyle(AppTheme.danger)
+                    .multilineTextAlignment(.center)
+            }
             if !call.inviteLink.isEmpty, call.phase == .waitingForPeer || call.phase == .connecting {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
@@ -284,13 +343,12 @@ struct CallTabView: View {
                 HStack(spacing: 18) {
                     callButton(call.isMicOn ? "mic.fill" : "mic.slash.fill", active: call.isMicOn) {
                         call.toggleMic()
-                        if call.isMicOn { session.setSpeechEnabled(true) } else { session.setSpeechEnabled(false) }
                     }
                     callButton(call.isCameraOn ? "video.fill" : "video.slash.fill", active: call.isCameraOn) {
                         call.toggleCamera()
                     }
                     callButton("arrow.triangle.2.circlepath.camera", active: false) {
-                        session.toggleCamera()
+                        call.flipCamera()
                     }
                     Button {
                         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
@@ -321,5 +379,24 @@ struct CallTabView: View {
                 .frame(width: 46, height: 46)
         }
         .buttonStyle(.plain)
+    }
+
+    private func bindCallSession() {
+        call.prepareForCallMedia = { await session.camera.stopAndWait() }
+        call.releaseCallMedia = {
+            if session.permissionStatus == .authorized {
+                session.start()
+            }
+        }
+        call.onRemoteLandmarks = { frame in
+            session.noteRemoteCallLandmarks(frame)
+        }
+    }
+
+    private func consumePendingInvite() {
+        bindCallSession()
+        guard let invite = callLinks.pendingInvite else { return }
+        callLinks.pendingInvite = nil
+        call.applyIncomingInvite(invite)
     }
 }
